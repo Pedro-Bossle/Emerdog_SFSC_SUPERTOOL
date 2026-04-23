@@ -1,0 +1,9 @@
+footer {
+    background: linear-gradient(to top, #e7f4fcb8, #ffffff);
+    padding: 3em;
+    border-top: 1px solid var(--cinza-claro);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1em;
+}

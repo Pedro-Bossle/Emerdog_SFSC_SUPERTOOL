@@ -5,9 +5,9 @@
     --azul-escuro: #1E3148;
     --azul-claro: #E7F4FC;
     --azul-destaque: #2F87C6;
-    --cinza-claro: #7C736A;
-    --cinza-medio: #EDE9E4;
-
+    --cinza-medio: #7C736A;
+    --cinza-claro: #EDE9E4;
+    --cinza-escuro: #606E7E;
 }
 
 * {
@@ -19,4 +19,6 @@
 body {
     line-height: 1.6;
     font-family: var(--fonte-principal);
+    color: var(--cinza-escuro);
+    background-color: white;
 }

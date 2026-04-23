@@ -1,0 +1,27 @@
+.login {
+    align-items: center;
+    display: flex;
+    justify-content: center;
+}
+
+.login_container {
+    border: 1px solid black;
+    margin: 5em;
+    padding: 5em;
+}
+
+
+.login_form{
+    margin: 2em;
+    display: flex;
+flex-direction: column;
+gap: 1em;
+}
+
+/*login
+    login_container
+        login_title
+        login_form
+            login_input
+            login_button
+*/
