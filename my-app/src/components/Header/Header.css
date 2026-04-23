@@ -29,3 +29,11 @@
     color: var(--cinza-escuro);
     font-weight: 500;
 }
+
+.logout_button{
+    padding: 0.5em 2em;
+    color: var(--azul-escuro);
+    background-color: var(--azul-claro);
+    border: 1px solid var(--cinza-claro);
+    border-radius: 3px;
+}
