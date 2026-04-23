@@ -1,0 +1,24 @@
+.header {
+    position: sticky;
+    display: flex;
+    justify-content: center;
+    margin: 2em 0 1em;
+}
+
+.header_nav {
+    display: flex;
+    align-items: center;
+    gap: 2em;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    border-radius: 12px;
+    padding: 1em 3em;
+}
+
+.logo {
+    height: 4vh;
+    max-height: 4vh;
+}
+
+.header_nav_link {
+    text-decoration: none;
+}
