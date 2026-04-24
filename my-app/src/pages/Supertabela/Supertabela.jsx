@@ -1,8 +1,9 @@
 import React from 'react'
+import './Supertabela.css'
 
 const Supertabela = () => {
     return (
-        <div>
+        <div className='supertabela'>
             <h1>Supertabela</h1>
             <h2>Por que Exise?</h2>
             <p>Criada para unificar as tabelas das regiões, negociações e planos todas em uma unica ferramenta, montada a partir de abas individuais de excel que se relacionavam entre si, impedindo a perda de dados e a inconsistência de informações.</p>

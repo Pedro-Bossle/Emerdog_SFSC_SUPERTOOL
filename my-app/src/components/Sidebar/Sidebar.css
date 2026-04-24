@@ -1,0 +1,137 @@
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    background: var(--azul-escuro);
+    color: white;
+    transition: width 0.3s ease;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-top: 20px;
+}
+
+.sidebar_logo_wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px 16px 10px;
+}
+
+.logo_sidebar {
+    height: 28px;
+    width: auto;
+    max-width: 100%;
+    object-fit: contain;
+    border-radius: 4px;
+}
+
+.sidebar.open {
+    width: 250px;
+}
+
+.sidebar.closed {
+    width: 50px;
+}
+
+.toggle_btn {
+    position: fixed;
+    bottom: 20px;
+    left: 12px;
+    z-index: 1000;
+}
+
+/* container do menu */
+.sidebar_nav {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 10px 20px 10px;
+}
+
+.sidebar_group {
+    display: flex;
+    flex-direction: column;
+}
+
+/* botão do item pai */
+.sidebar_group_btn {
+    width: 100%;
+    background: transparent;
+    border: 0;
+    color: white;
+    text-align: left;
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: ease 0.2s;
+}
+
+.sidebar_group_btn:hover {
+    transform: scale(1.05);
+    font-weight: 700;
+    opacity: 1;
+    color: var(--azul-claro);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+/* submenu */
+.sidebar_submenu {
+    display: flex;
+    flex-direction: column;
+    margin-left: 10px;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 10px;
+    margin-bottom: 6px;
+}
+
+.sidebar_submenu a {
+    color: white;
+    text-decoration: none;
+    opacity: 0.9;
+    padding: 6px 0;
+    font-size: 0.95rem;
+    transition: ease 0.2s;
+}
+
+.sidebar_submenu_action {
+    background: transparent;
+    border: 0;
+    color: white;
+    text-decoration: none;
+    opacity: 0.9;
+    padding: 6px 0;
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.sidebar_submenu a:hover {
+    font-weight: 600;
+    opacity: 1;
+    color: var(--azul-claro);
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.sidebar_submenu_action:hover {
+    opacity: 1;
+    text-decoration: underline;
+}
+
+/* quando estiver fechada, esconde textos e submenu */
+.sidebar.closed .sidebar_group_btn span:first-child {
+    display: none;
+}
+
+.sidebar.closed .sidebar_submenu {
+    display: none;
+}
+
+.sidebar.closed .sidebar_group_btn span:last-child {
+    display: none;
+}

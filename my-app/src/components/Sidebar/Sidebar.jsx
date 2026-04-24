@@ -1,24 +1,237 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import './Sidebar.css'
+import iconShow from "../../assets/sidepanel-ico-show.png";
+import iconHide from "../../assets/sidepanel-ico-hide.png";
+import logoBranco from "../../assets/logo_branco.png";
+import logoE from "../../assets/logo_E.png";
+import { useNavigate } from 'react-router-dom';
+import { supabase } from '../../lib/supabase';
 
-const Sidebar = () => {
+/**
+ * Como adicionar novos grupos:
+ * 1) Adicione um objeto no array `menuItems` com:
+ *    - id: identificador único
+ *    - label: texto do item pai
+ *    - children: array com os subitens
+ *
+ * Exemplo:
+ * {
+ *   id: 'financeiro',
+ *   label: 'Financeiro',
+ *   children: [
+ *     { label: 'Faturas', href: '/financeiro/faturas' },
+ *     { label: 'Reembolsos', href: '/financeiro/reembolsos' },
+ *   ],
+ * }
+ */
+const menuItems = [
+    {
+        id: 'inicio',
+        label: 'Início',
+        children: [
+            { label: 'Dashboard', href: '/home' }
+        ],
+    },
+    {
+        id: 'supertabela',
+        label: 'Super-Tabela',
+        children: [
+            { label: 'Visão geral', href: '/supertabela' },
+            { label: 'Filtros', href: '/supertabela/filtros' },
+            { label: 'Negociacoes', href: '/supertabela/Negociacoes' },
+            { label: 'Documentacao', href: '/supertabela/supertabela' },
+        ],
+    },
+    {
+        id: 'credenciamento',
+        label: 'Credenciamento',
+        children: [
+            { label: 'Processos', href: '/credenciamento/processos' },
+            { label: 'Resumos', href: '/credenciamento/resumos' },
+        ],
+    },
+    {
+        id: 'formulario',
+        label: 'Formulário',
+        children: [
+            { label: 'Respostas', href: '/formulario/respostas' },
+            { label: 'Editor', href: '/formulario/Editor' },
+            { label: 'Preencher', href: '/formulario/preencher' },
+        ],
+    },
+    {
+        id: 'planos',
+        label: 'Planos',
+        children: [
+            { label: 'Editor', href: '/editor' },
+            { label: 'Publico', href: '/planos/publico' },
+        ],
+    },
+    {
+        id: 'contratos',
+        label: 'Contratos',
+        children: [
+            { label: 'Criar', href: '/contratos/Criar' },
+            { label: 'Histórico', href: '/contratos/historico' },
+            { label: 'Assinar', href: '/contratos/assinar' },
+        ],
+    },
+    {
+        id: 'pagamentos',
+        label: 'Pagamentos',
+        children: [
+            { label: 'Cadastrar', href: '/pagamentos/cadastro' },
+            { label: 'Todos', href: '/pagamentos/todos' },
+            { label: 'Pendências', href: '/pagamentos/pendencias' },
+        ],
+    },
+    {
+        id: 'emercast',
+        label: 'Emer-Cast',
+        children: [
+            { label: 'Visualizar', href: '/emercast/visualizar' },
+            { label: 'Publico', href: '/emercast/Publico' },
+        ],
+    },
+    {
+        id: 'sair',
+        label: 'Sair',
+        children: [
+            { label: 'Redefinir senha', action: 'reset-password' },
+            { label: 'Encerrar sessão', href: '/logout' },
+        ],
+    },
+]
+
+const Sidebar = ({ open, setOpen }) => {
+    const navigate = useNavigate()
+    /**
+     * Estado de submenus:
+     * { [idDoMenu]: true/false }
+     */
+    const [openMenus, setOpenMenus] = useState({})
+
+    // Inicializa todos fechados ao montar
+    useEffect(() => {
+        const initial = {}
+        menuItems.forEach((item) => {
+            initial[item.id] = false
+        })
+        setOpenMenus(initial)
+    }, [])
+
+    // Se fechar a sidebar, fecha todos os submenus também
+    useEffect(() => {
+        if (!open) {
+            const reset = {}
+            menuItems.forEach((item) => {
+                reset[item.id] = false
+            })
+            setOpenMenus(reset)
+        }
+    }, [open])
+
+    const toggleMenu = (id) => {
+        setOpenMenus((prev) => ({
+            ...prev,
+            [id]: !prev[id],
+        }))
+    }
+
+    const handleLogout = async () => {
+        const { error } = await supabase.auth.signOut()
+        if (error) {
+            alert('Erro ao sair da sessão')
+            return
+        }
+        navigate('/', { replace: true })
+    }
+
+    const handleResetPassword = async () => {
+        const { data: userData, error: userError } = await supabase.auth.getUser()
+
+        if (userError || !userData?.user?.email) {
+            alert('Não foi possível identificar o usuário logado')
+            return
+        }
+
+        const { error } = await supabase.auth.resetPasswordForEmail(userData.user.email, {
+            redirectTo: window.location.origin,
+        })
+
+        if (error) {
+            alert('Erro ao enviar redefinição de senha')
+            return
+        }
+
+        alert('E-mail de redefinição enviado com sucesso')
+    }
+
+    const handleAction = async (child) => {
+        if (child.action === 'reset-password') {
+            await handleResetPassword()
+            return
+        }
+
+        if (child.href === '/logout') {
+            await handleLogout()
+        }
+    }
+
     return (
-        <div>Sidebar
+        <div className='layout'>
+            <button onClick={() => setOpen(!open)} className="toggle_btn">
+                <img
+                    src={open ? iconHide : iconShow}
+                    alt="Toggle Sidebar"
+                    className="toggle_icon"
+                />
+            </button>
 
-            <nav>
-                <ul>
-                    <li>
-                        <a href="/home">Início</a>
-                    </li>
-                </ul>
-            </nav>
+            <aside className={`sidebar ${open ? 'open' : 'closed'}`}>
+                <div className="sidebar_logo_wrap">
+                    <img
+                        src={open ? logoBranco : logoE}
+                        alt="Emerdog"
+                        className='logo logo_sidebar'
+                    />
+                </div>
 
+                <nav className='sidebar_nav'>
+                    {menuItems.map((item) => (
+                        <div key={item.id} className="sidebar_group">
+                            <button
+                                className="sidebar_group_btn"
+                                onClick={() => toggleMenu(item.id)}
+                            >
+                                <span>{item.label}</span>
+                                <span>{openMenus[item.id] ? '▾' : '▸'}</span>
+                            </button>
 
-
-
-
-
-
-
+                            {openMenus[item.id] && (
+                                <div className="sidebar_submenu">
+                                    {item.children.map((child) => (
+                                        child.action || child.href === '/logout' ? (
+                                            <button
+                                                key={child.action || child.href}
+                                                type="button"
+                                                className="sidebar_submenu_action"
+                                                onClick={() => handleAction(child)}
+                                            >
+                                                {child.label}
+                                            </button>
+                                        ) : (
+                                            <a key={child.href} href={child.href}>
+                                                {child.label}
+                                            </a>
+                                        )
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </nav>
+            </aside>
         </div>
     )
 }
