@@ -3,7 +3,64 @@ footer {
     padding: 3em;
     border-top: 1px solid var(--cinza-claro);
     display: flex;
-    justify-content: center;
-    align-items: center;
+    flex-direction: column;
     gap: 1em;
+    text-align: center;
+}
+
+.footer_container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+
+}
+
+.footer_icon,
+.tutorial_icon {
+    height: 40px;
+}
+
+.tutorial_icon {
+    margin: 2px;
+}
+
+.tutorial_link {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    text-decoration: none;
+    margin: 0 1em;
+}
+
+.tutorial_wrapper {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 40px;
+    align-items: start;
+    /* 🔥 alinha tudo no topo */
+}
+
+footer a {
+    transition: transform ease 0.2s;
+    color: var(--cinza-escuro);
+}
+
+footer a:hover {
+    transform: scale(1.004);
+    color: var(--azul-destaque);
+
+}
+
+.footer_container_left_logo {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+    padding: 1em;
+}
+
+.copyright {
+    margin-top: 8em;
+    font-weight: 300;
+    font-style: italic;
+    color: var(--cinza-escuro);
 }

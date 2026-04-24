@@ -24,23 +24,36 @@
     background: #ffff;
     border: 1px solid var(--cinza-claro);
     margin: 12px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card_nome{
+.home_card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.081);
+}
+
+.card_nome {
     color: var(--azul-escuro);
 }
 
-.card_texto{
+.card_texto {
     font-size: 18px;
 }
 
-.card_link{
+.card_link {
     text-decoration: none;
     color: var(--azul-destaque);
     background-color: var(--azul-claro);
     text-align: center;
     border-radius: 8px;
-    margin: 1em 5em ;
+    margin: 1em 5em;
+    cursor: pointer;
+    transition: transform 0.5s ease;
+}
+
+
+.card_link:hover {
+    transform: scale(1.03);
+    font-weight: 500;
 }
 
 /*home_cards_container

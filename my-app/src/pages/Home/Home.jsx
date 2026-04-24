@@ -38,6 +38,7 @@ const Home = () => {
       <div >
         <h1>Olá {loading ? '...' : name}</h1>
         <p>Bem-vindo ao Sistema Facilitador do Setor de Credenciamentos (SFSC)</p>
+        <p>Esta ferramenta existe para facilitar o dia a dia do setor de credenciamentos, aqui você encontrará todas as ferramentas necessárias para o seu trabalho.</p>
       </div>
 
       <div className='home_cards_container'>
@@ -69,6 +70,18 @@ const Home = () => {
           <h2 className='card_nome'>Contratos</h2>
           <p className='card_texto'>Crie contratos de forma rápida e fácil, visualize os existentes e veja o status de cada um sem abrir o Clicksign (API);</p>
           <a className='card_link' href="https://emerdogplano-my.sharepoint.com/:w:/g/personal/arthur_emerdog_com_br/IQAKum4BlA8IQqC6UX8mVB_ZAarTFfI9niv0eZ_EtNT6dHU?e=0U4bIW">Conheça essa Ferramenta</a>
+        </div>
+
+        <div className='home_card'>
+          <h2 className='card_nome'>Pagamentos</h2>
+          <p className='card_texto'>Confira os repasses do mês, quem enviou a nota e quem deu o OK para os relatórios;</p>
+          <a className='card_link' href="https://emerdogplano-my.sharepoint.com/:x:/g/personal/arthur_emerdog_com_br/IQDuea4Z4rpKQpSpyetdlhYwAYP6TxrTPvFdEAOd2eTK7k0?e=oXHdzG">Conheça essa Ferramenta</a>
+        </div>
+
+        <div className='home_card'>
+          <h2 className='card_nome'>Emer Cast</h2>
+          <p className='card_texto'>Fique por dentro do cronograma de episódios do Emer Cast;</p>
+          <a className='card_link' href="https://docs.google.com/spreadsheets/d/1WqUUGcIDeM6NTdjzXoDqhDD1GWUshnaoZjiVQZH6l5M/edit?gid=956068756#gid=956068756">Conheça essa Ferramenta</a>
         </div>
 
         <div className='home_card'>

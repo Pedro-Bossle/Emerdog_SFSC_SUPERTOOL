@@ -3,7 +3,7 @@
     top: 0;
     left: 0;
     z-index: 10;
-    padding: 2em ;
+    padding: 2em;
     display: flex;
     justify-content: center;
     background: linear-gradient(to bottom, #e7f4fcb8, #ffffff00);
@@ -28,12 +28,27 @@
     text-decoration: none;
     color: var(--cinza-escuro);
     font-weight: 500;
+    transition: transform ease 0.3s;
 }
 
-.logout_button{
+.logout_button {
     padding: 0.5em 2em;
     color: var(--azul-escuro);
     background-color: var(--azul-claro);
     border: 1px solid var(--cinza-claro);
     border-radius: 3px;
+    transition: transform ease 0.3s;
+
+}
+
+.header_nav_link:hover {
+    transform: scale(1.02);
+    color: var(--azul-destaque);
+}
+
+.logout_button:hover {
+    transform: scale(1.02);
+    font-weight: 500;
+    border: 1px dotted var(--azul-destaque);
+    cursor: pointer;
 }
