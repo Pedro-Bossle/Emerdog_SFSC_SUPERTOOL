@@ -39,7 +39,7 @@ const menuItems = [
             { label: 'Visão geral', href: '/supertabela' },
             { label: 'Filtros', href: '/supertabela/filtros' },
             { label: 'Negociacoes', href: '/supertabela/Negociacoes' },
-            { label: 'Documentacao', href: '/supertabela/supertabela' },
+            { label: 'Documentação', href: '#' },
         ],
     },
     {
@@ -48,6 +48,8 @@ const menuItems = [
         children: [
             { label: 'Processos', href: '/credenciamento/processos' },
             { label: 'Resumos', href: '/credenciamento/resumos' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {
@@ -57,6 +59,8 @@ const menuItems = [
             { label: 'Respostas', href: '/formulario/respostas' },
             { label: 'Editor', href: '/formulario/Editor' },
             { label: 'Preencher', href: '/formulario/preencher' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {
@@ -65,6 +69,8 @@ const menuItems = [
         children: [
             { label: 'Editor', href: '/editor' },
             { label: 'Publico', href: '/planos/publico' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {
@@ -74,6 +80,8 @@ const menuItems = [
             { label: 'Criar', href: '/contratos/Criar' },
             { label: 'Histórico', href: '/contratos/historico' },
             { label: 'Assinar', href: '/contratos/assinar' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {
@@ -83,6 +91,8 @@ const menuItems = [
             { label: 'Cadastrar', href: '/pagamentos/cadastro' },
             { label: 'Todos', href: '/pagamentos/todos' },
             { label: 'Pendências', href: '/pagamentos/pendencias' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {
@@ -91,6 +101,8 @@ const menuItems = [
         children: [
             { label: 'Visualizar', href: '/emercast/visualizar' },
             { label: 'Publico', href: '/emercast/Publico' },
+            { label: 'Documentação', href: '#' },
+
         ],
     },
     {

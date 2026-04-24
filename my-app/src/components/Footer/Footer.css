@@ -29,6 +29,7 @@ footer {
     align-items: center;
     justify-content: start;
     text-decoration: none;
+    text-align: start;
     margin: 0 1em;
 }
 
@@ -37,7 +38,6 @@ footer {
     grid-template-columns: repeat(3, 1fr);
     gap: 40px;
     align-items: start;
-    /* 🔥 alinha tudo no topo */
 }
 
 footer a {

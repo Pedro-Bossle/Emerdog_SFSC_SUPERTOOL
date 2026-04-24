@@ -37,7 +37,7 @@ const Home = () => {
     <div className='home'>
       <div >
         <h1>Olá {loading ? '...' : name}</h1>
-        <p>Bem-vindo ao Sistema Facilitador do Setor de Credenciamentos (SFSC)</p>
+        <p>Bem-vindo ao Sistema Facilitador do Setor de Credenciamentos  (<strong>S.F.S.C.</strong>)</p>
         <p>Esta ferramenta existe para facilitar o dia a dia do setor de credenciamentos, aqui você encontrará todas as ferramentas necessárias para o seu trabalho.</p>
       </div>
 
