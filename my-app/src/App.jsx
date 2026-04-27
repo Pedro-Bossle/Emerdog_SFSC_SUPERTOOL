@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Login from './pages/Login/Login';
-import Supertabela from './pages/Supertabela/Supertabela';
+import Supertabeladoc from './pages/Supertabela/Supertabeladoc';
 import Layout from './components/Layout/Layout';
 import Layout2 from './components/Layout2/Layout2';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute'
@@ -25,10 +25,10 @@ function App() {
         </Route>
         <Route element={<Layout2 />}>
           <Route
-            path="/supertabela"
+            path="/Supertabeladoc"
             element={
               <PrivateRoute>
-                <Supertabela />
+                <Supertabeladoc />
               </PrivateRoute>
             }
           />
@@ -40,3 +40,15 @@ function App() {
   )
 }
 export default App
+
+
+/*
+> Fazer Documentações
+> Iniciar Super Tabela
+> Iniciar Credenciamento
+> Iniciar Formulários
+> Iniciar Planos
+> Iniciar Contratos
+> Iniciar Pagamentos
+> Iniciar Emercast
+*/

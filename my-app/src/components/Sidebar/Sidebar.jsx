@@ -38,8 +38,8 @@ const menuItems = [
         children: [
             { label: 'Visão geral', href: '/supertabela' },
             { label: 'Filtros', href: '/supertabela/filtros' },
-            { label: 'Negociacoes', href: '/supertabela/Negociacoes' },
-            { label: 'Documentação', href: '#' },
+            { label: 'Negociações', href: '/supertabela/Negociacoes' },
+            { label: 'Documentação', href: '/Supertabeladoc' },
         ],
     },
     {
@@ -144,10 +144,17 @@ const Sidebar = ({ open, setOpen }) => {
     }, [open])
 
     const toggleMenu = (id) => {
-        setOpenMenus((prev) => ({
-            ...prev,
-            [id]: !prev[id],
-        }))
+        setOpenMenus((prev) => {
+            const wasOpen = !!prev[id]
+            const next = {}
+            menuItems.forEach((item) => {
+                next[item.id] = false
+            })
+            if (!wasOpen) {
+                next[id] = true
+            }
+            return next
+        })
     }
 
     const handleLogout = async () => {
@@ -220,26 +227,24 @@ const Sidebar = ({ open, setOpen }) => {
                                 <span>{openMenus[item.id] ? '▾' : '▸'}</span>
                             </button>
 
-                            {openMenus[item.id] && (
-                                <div className="sidebar_submenu">
-                                    {item.children.map((child) => (
-                                        child.action || child.href === '/logout' ? (
-                                            <button
-                                                key={child.action || child.href}
-                                                type="button"
-                                                className="sidebar_submenu_action"
-                                                onClick={() => handleAction(child)}
-                                            >
-                                                {child.label}
-                                            </button>
-                                        ) : (
-                                            <a key={child.href} href={child.href}>
-                                                {child.label}
-                                            </a>
-                                        )
-                                    ))}
-                                </div>
-                            )}
+                            <div className={`sidebar_submenu ${openMenus[item.id] ? 'open' : ''}`}>
+                                {item.children.map((child) => (
+                                    child.action || child.href === '/logout' ? (
+                                        <button
+                                            key={child.action || child.href}
+                                            type="button"
+                                            className="sidebar_submenu_action"
+                                            onClick={() => handleAction(child)}
+                                        >
+                                            {child.label}
+                                        </button>
+                                    ) : (
+                                        <a key={child.href} href={child.href}>
+                                            {child.label}
+                                        </a>
+                                    )
+                                ))}
+                            </div>
                         </div>
                     ))}
                 </nav>

@@ -45,7 +45,7 @@ const Home = () => {
         <div className='home_card'>
           <h2 className='card_nome'>Super Tabela</h2>
           <p className='card_texto'>Gerencie as tabelas de preços dos seus procedimentos e as negociações com os parceiros;</p>
-          <a className='card_link' href="https://docs.google.com/spreadsheets/d/1ZHh72LyM2cH9oO9mgVAVCOCfIUsodTm_NiEF8CfyE_w/edit?usp=sharing">Conheça essa Ferramenta</a>
+          <a className='card_link' href="/Supertabeladoc">Conheça essa Ferramenta</a>
         </div>
 
         <div className='home_card'>

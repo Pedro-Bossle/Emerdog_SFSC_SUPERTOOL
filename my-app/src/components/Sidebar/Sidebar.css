@@ -67,7 +67,8 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: ease 0.2s;
+    transition: background-color 180ms ease, color 180ms ease;
+    transition: transform 0.5s ease;
 }
 
 .sidebar_group_btn:hover {
@@ -87,7 +88,25 @@
     border-left: 1px solid rgba(255, 255, 255, 0.2);
     padding-left: 10px;
     margin-bottom: 6px;
+    overflow: hidden;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition:
+        max-height 280ms ease,
+        opacity 220ms ease,
+        transform 220ms ease;
+    will-change: max-height, opacity, transform;
+
 }
+
+.sidebar_submenu.open {
+    max-height: 260px;
+    /* valor suficiente para o maior submenu */
+    opacity: 1;
+    transform: translateY(0);
+}
+
 
 .sidebar_submenu a {
     color: white;
@@ -129,7 +148,9 @@
 }
 
 .sidebar.closed .sidebar_submenu {
-    display: none;
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-4px);
 }
 
 .sidebar.closed .sidebar_group_btn span:last-child {
