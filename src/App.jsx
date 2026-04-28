@@ -8,7 +8,7 @@ import PrivateRoute from './components/PrivateRoute/PrivateRoute'
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       <Routes>
         {/* Sem layout */}
         <Route path="/" element={<Login />} />
