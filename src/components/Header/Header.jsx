@@ -1,5 +1,6 @@
 import React from 'react'
 import "./Header.css"
+import logoNav from '../../assets/Emerdog-logo-nav.svg'
 
 
 import { supabase } from '../../lib/supabase' // ajuste o caminho se necessário
@@ -25,7 +26,7 @@ const Header = () => {
     return (
         <header className='header'>
             <nav className='header_nav'>
-                <img src="./src/assets/Emerdog-logo-nav.svg" alt="A" className='logo logo_header' />
+                <img src={logoNav} alt="A" className='logo logo_header' />
                 <a className='header_nav_link' href="/Home">Início</a>
                 <a className='header_nav_link' href="/supertabeladoc">Super-Tabela</a>
                 <a className='header_nav_link' href="#">Credenciamento</a>
