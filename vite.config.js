@@ -3,6 +3,6 @@ import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/Emerdog_SFSC_SUPERTOOL/',
+  base: process.env.VERCEL ? '/' : '/Emerdog_SFSC_SUPERTOOL/',
   plugins: [react()],
 })
