@@ -1,0 +1,64 @@
+.supertabelamain {
+    text-align: center;
+    margin-right: 2em;
+}
+
+hr {
+    border-radius: 10px;
+    margin: 10px 20em;
+    border: 1px solid var(--azul-claro);
+}
+
+.supertabelamain_filters {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    text-align: center;
+    padding: 1em 10em;
+}
+
+.supertabelamain_filters_input_text {
+    padding: 6px 20px;
+    text-align: start;
+    border-radius: 8px;
+    border: 1px solid var(--azul-escuro);
+}
+
+.supertabelamain_filters_input_button {
+    margin-left: 10px;
+    padding: 6px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-escuro);
+    background-color: var(--azul-claro);
+}
+
+
+.supertabelamain_filters_select_select {
+    padding: 6px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-escuro);
+    background-color: var(--azul-claro);
+}
+
+.table_container {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+
+
+
+
+/*
+supertabelamain_filters
+supertabelamain_filters_input
+supertabelamain_filters_input_text
+supertabelamain_filters_input_button
+supertabelamain_filters_select
+supertabelamain_filters_select_select
+
+
+table_container
+table_main

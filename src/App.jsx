@@ -1,11 +1,12 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Home from './pages/Home/Home';
 import Login from './pages/Login/Login';
-import Supertabeladoc from './pages/Supertabela/Supertabeladoc';
 import Layout from './components/Layout/Layout';
 import Layout2 from './components/Layout2/Layout2';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute'
-
+import Supertabeladoc from './pages/Supertabela/Supertabela_doc/Supertabeladoc';
+import Supertabelamain from './pages/Supertabela/Supertabela_main/Supertabelamain';
+import NotFound from './pages/NotFound/NotFound';
 function App() {
   return (
     <BrowserRouter basename={import.meta.env.BASE_URL}>
@@ -25,7 +26,7 @@ function App() {
         </Route>
         <Route element={<Layout2 />}>
           <Route
-            path="/Supertabeladoc"
+            path="/supertabeladoc"
             element={
               <PrivateRoute>
                 <Supertabeladoc />
@@ -33,8 +34,18 @@ function App() {
             }
           />
         </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/supertabelamain"
+            element={
+              <PrivateRoute>
+                <Supertabelamain />
+              </PrivateRoute>
+            }
+          />
+        </Route>
 
-        <Route path="*" element={<h1>Not Found</h1>} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   )

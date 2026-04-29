@@ -4,7 +4,7 @@ import logoNav from '../../assets/Emerdog-logo-nav.svg'
 
 
 import { supabase } from '../../lib/supabase' // ajuste o caminho se necessário
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 
 
@@ -23,8 +23,8 @@ const Header = () => {
         <header className='header'>
             <nav className='header_nav'>
                 <img src={logoNav} alt="A" className='logo logo_header' />
-                <a className='header_nav_link' href="/Home">Início</a>
-                <a className='header_nav_link' href="/supertabeladoc">Super-Tabela</a>
+                <Link className='header_nav_link' to="/home">Início</Link>
+                <Link className='header_nav_link' to="/supertabeladoc">Super-Tabela</Link>
                 <a className='header_nav_link' href="#">Credenciamento</a>
                 <a className='header_nav_link' href="#">Formulário</a>
                 <a className='header_nav_link' href="#">Planos</a>

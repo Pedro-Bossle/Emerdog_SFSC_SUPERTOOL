@@ -4,16 +4,33 @@ import { Outlet } from 'react-router-dom'
 import './Layout2.css'
 
 const Layout2 = () => {
-    const [open, setOpen] = useState(true)
+  const [openManual, setOpenManual] = useState(false) // botão
+  const [isHovering, setIsHovering] = useState(false) // mouse
 
-    return (
-        <div className="app-shell">
-            <Sidebar open={open} setOpen={setOpen} />
-            <main className={`content ${open ? 'open' : 'closed'}`}>
-                <Outlet />
-            </main>
-        </div>
-    )
+  const open = openManual || isHovering
+
+  const handleToggleManual = () => {
+    setOpenManual((prev) => !prev)
+  }
+
+  return (
+    <div className="app-shell">
+      <div
+        onMouseEnter={() => setIsHovering(true)}
+        onMouseLeave={() => setIsHovering(false)}
+      >
+        <Sidebar
+          open={open}
+          onToggleManual={handleToggleManual}
+          isPinned={openManual}
+        />
+      </div>
+
+      <main className={`content ${open ? 'open' : 'closed'}`}>
+        <Outlet />
+      </main>
+    </div>
+  )
 }
 
 export default Layout2

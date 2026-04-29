@@ -1,12 +1,10 @@
 .content {
     transition: margin-left 0.3s ease;
-}
-
-.content.open {
-    margin-left: 250px;
-}
-
-.content.closed {
-    margin-left: 80px;
-    /* ou 0 se quiser recolher totalmente */
-}
+  }
+  .content.open {
+    margin-left: 180px;
+  }
+  .content.closed {
+    margin-left: 10px;
+  }
+  

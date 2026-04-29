@@ -4,7 +4,7 @@ import iconShow from "../../assets/sidepanel-ico-show.png";
 import iconHide from "../../assets/sidepanel-ico-hide.png";
 import logoBranco from "../../assets/logo_branco.png";
 import logoE from "../../assets/logo_E.png";
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 
 /**
@@ -36,10 +36,10 @@ const menuItems = [
         id: 'supertabela',
         label: 'Super-Tabela',
         children: [
-            { label: 'Visão geral', href: '/supertabela' },
+            { label: 'Visão geral', href: '/supertabelamain' },
             { label: 'Filtros', href: '/supertabela/filtros' },
             { label: 'Negociações', href: '/supertabela/Negociacoes' },
-            { label: 'Documentação', href: '/Supertabeladoc' },
+            { label: 'Documentação', href: '/supertabeladoc' },
         ],
     },
     {
@@ -115,7 +115,7 @@ const menuItems = [
     },
 ]
 
-const Sidebar = ({ open, setOpen }) => {
+const Sidebar = ({ open, onToggleManual, isPinned }) => {
     const navigate = useNavigate()
     /**
      * Estado de submenus:
@@ -199,10 +199,10 @@ const Sidebar = ({ open, setOpen }) => {
 
     return (
         <div className='layout'>
-            <button onClick={() => setOpen(!open)} className="toggle_btn">
+            <button onClick={onToggleManual} className="toggle_btn">
                 <img
                     src={open ? iconHide : iconShow}
-                    alt="Toggle Sidebar"
+                    alt={isPinned ? "Desafixar Sidebar" : "Fixar Sidebar"}
                     className="toggle_icon"
                 />
             </button>
@@ -239,9 +239,9 @@ const Sidebar = ({ open, setOpen }) => {
                                             {child.label}
                                         </button>
                                     ) : (
-                                        <a key={child.href} href={child.href}>
+                                        <Link key={child.href} to={child.href}>
                                             {child.label}
-                                        </a>
+                                        </Link>
                                     )
                                 ))}
                             </div>

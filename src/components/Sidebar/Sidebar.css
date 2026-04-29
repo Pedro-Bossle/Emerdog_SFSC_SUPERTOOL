@@ -32,13 +32,13 @@
 }
 
 .sidebar.closed {
-    width: 50px;
+    width: 45px;
 }
 
 .toggle_btn {
     position: fixed;
     bottom: 20px;
-    left: 12px;
+    left: 9px;
     z-index: 1000;
 }
 
@@ -69,6 +69,23 @@
     justify-content: space-between;
     transition: background-color 180ms ease, color 180ms ease;
     transition: transform 0.5s ease;
+}
+
+.sidebar_group_btn span {
+    transition: opacity 180ms ease, transform 180ms ease, max-width 180ms ease;
+}
+
+.sidebar_group_btn span:first-child {
+    max-width: 170px;
+    overflow: hidden;
+    white-space: nowrap;
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.sidebar_group_btn span:last-child {
+    opacity: 1;
+    transform: translateX(0);
 }
 
 .sidebar_group_btn:hover {
@@ -144,7 +161,9 @@
 
 /* quando estiver fechada, esconde textos e submenu */
 .sidebar.closed .sidebar_group_btn span:first-child {
-    display: none;
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(-6px);
 }
 
 .sidebar.closed .sidebar_submenu {
@@ -154,5 +173,6 @@
 }
 
 .sidebar.closed .sidebar_group_btn span:last-child {
-    display: none;
+    opacity: 0;
+    transform: translateX(-6px);
 }
