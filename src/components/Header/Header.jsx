@@ -19,10 +19,6 @@ const Header = () => {
         navigate('/', { replace: true })
     }
 
-
-
-
-
     return (
         <header className='header'>
             <nav className='header_nav'>
