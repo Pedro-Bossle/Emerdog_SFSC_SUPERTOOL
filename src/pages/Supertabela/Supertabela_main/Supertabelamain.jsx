@@ -22,6 +22,15 @@ const Supertabelamain = () => {
     const [edicoesLocais, setEdicoesLocais] = useState({})
 
     /**
+     * Resolve a cidade ativa e o respectivo ID de região.
+     */
+    const cidadeSelecionada = useMemo(
+        () => cidades.find((cidade) => String(cidade.id) === String(cidadeId)) || null,
+        [cidades, cidadeId]
+    )
+    const regiaoSelecionadaId = cidadeSelecionada?.regiao_id ?? null
+
+    /**
      * Formata valores numéricos para moeda BRL.
      */
     const formatarMoeda = (valor) =>
@@ -121,26 +130,41 @@ const Supertabelamain = () => {
             setLoading(true)
             setErroDetalhe('')
 
-            const cidadeSelecionada = cidades.find((cidade) => String(cidade.id) === String(cidadeId))
             if (!cidadeSelecionada) {
                 setErroDetalhe('Cidade selecionada não encontrada na lista.')
                 return
             }
 
-            const regiaoId = cidadeSelecionada.regiao_id
+            const regiaoId = regiaoSelecionadaId
 
-            const [{ data: planosCidade, error: errPlanosCidade }, { data: repasses, error: errRepasses }] =
-                await Promise.all([
-                    supabase
-                        .from('planos_cidade')
-                        .select('id, procedimento_cod, diferenca')
-                        .eq('regiao_id', regiaoId)
-                        .eq('plano_id', planoId),
-                    supabase
-                        .from('repasses')
-                        .select('id, procedimento_id, porte_id, valor')
-                        .eq('cidade_id', cidadeId),
-                ])
+            const [planosCidadeResp, repassesPorRegiaoResp] = await Promise.all([
+                supabase
+                    .from('planos_cidade')
+                    .select('id, procedimento_cod, diferenca')
+                    .eq('regiao_id', regiaoId)
+                    .eq('plano_id', planoId),
+                supabase
+                    .from('repasses')
+                    .select('id, procedimento_id, porte_id, valor')
+                    .eq('regiao_id', regiaoId),
+            ])
+
+            const planosCidade = planosCidadeResp.data
+            const errPlanosCidade = planosCidadeResp.error
+
+            let repasses = repassesPorRegiaoResp.data
+            let errRepasses = repassesPorRegiaoResp.error
+
+            if (errRepasses) {
+                // Compatibilidade com bases antigas onde repasses ainda usam cidade_id.
+                const fallback = await supabase
+                    .from('repasses')
+                    .select('id, procedimento_id, porte_id, valor')
+                    .eq('cidade_id', cidadeId)
+
+                repasses = fallback.data
+                errRepasses = fallback.error
+            }
 
             if (errPlanosCidade || errRepasses) {
                 const detalhes = [errPlanosCidade?.message, errRepasses?.message].filter(Boolean).join(' | ')
@@ -284,6 +308,11 @@ const Supertabelamain = () => {
      * Persiste no banco o valor de repasse para cidade/porte/procedimento e atualiza estado local.
      */
     const salvarRepasseValor = async (linha, campo, valorNumerico) => {
+        if (!regiaoSelecionadaId) {
+            setErroDetalhe('Região da cidade selecionada não identificada para salvar repasse.')
+            return false
+        }
+
         const metaPorCampo = {
             porteP: { repasseId: linha.repasseIdP, porteId: linha.porteIdP },
             porteM: { repasseId: linha.repasseIdM, porteId: linha.porteIdM },
@@ -305,22 +334,47 @@ const Supertabelamain = () => {
                 .eq('id', meta.repasseId)
             erroPersistencia = error
         } else {
-            const { data, error } = await supabase
+            const tentativaPorRegiao = await supabase
                 .from('repasses')
                 .upsert(
                     {
                         procedimento_id: linha.codigo,
-                        cidade_id: Number(cidadeId),
+                        regiao_id: Number(regiaoSelecionadaId),
                         porte_id: Number(meta.porteId),
                         valor: valorNumerico,
                     },
                     {
-                        onConflict: 'procedimento_id,cidade_id,porte_id',
+                        onConflict: 'procedimento_id,regiao_id,porte_id',
                     }
                 )
                 .select('id')
                 .single()
-            erroPersistencia = error
+
+            let data = tentativaPorRegiao.data
+            erroPersistencia = tentativaPorRegiao.error
+
+            if (erroPersistencia) {
+                // Compatibilidade com bases antigas onde repasses ainda usam cidade_id.
+                const tentativaPorCidade = await supabase
+                    .from('repasses')
+                    .upsert(
+                        {
+                            procedimento_id: linha.codigo,
+                            cidade_id: Number(cidadeId),
+                            porte_id: Number(meta.porteId),
+                            valor: valorNumerico,
+                        },
+                        {
+                            onConflict: 'procedimento_id,cidade_id,porte_id',
+                        }
+                    )
+                    .select('id')
+                    .single()
+
+                data = tentativaPorCidade.data
+                erroPersistencia = tentativaPorCidade.error
+            }
+
             novoRepasseId = data?.id || null
         }
 
@@ -386,13 +440,12 @@ const Supertabelamain = () => {
      * Resolve o ID de planos_cidade para o procedimento/plano/região atuais quando não vier no estado.
      */
     const resolverPlanoCidadeId = async (linha) => {
-        const cidadeSelecionada = cidades.find((cidade) => String(cidade.id) === String(cidadeId))
-        if (!cidadeSelecionada?.regiao_id) return null
+        if (!regiaoSelecionadaId) return null
 
         const { data, error } = await supabase
             .from('planos_cidade')
             .select('id')
-            .eq('regiao_id', cidadeSelecionada.regiao_id)
+            .eq('regiao_id', regiaoSelecionadaId)
             .eq('plano_id', planoId)
             .eq('procedimento_cod', linha.codigo)
             .maybeSingle()

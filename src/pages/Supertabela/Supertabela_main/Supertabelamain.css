@@ -63,7 +63,7 @@ hr {
     text-align: start;
     border-radius: 8px;
     border: 1px solid var(--azul-escuro);
-    min-width: 200px;
+    min-width: 290px;
     background: white;
 }
 
@@ -71,7 +71,7 @@ hr {
     margin-left: 10px;
     padding: 8px 16px;
     border-radius: 8px;
-    border: 1px solid var(--azul-escuro);
+    border: 1px solid var(--azul-destaque);
     background-color: var(--azul-claro);
     font-weight: 600;
     cursor: pointer;
@@ -87,7 +87,7 @@ hr {
 .supertabelamain_filters_select_select {
     padding: 8px 12px;
     border-radius: 8px;
-    border: 1px solid var(--azul-escuro);
+    border: 1px solid var(--azul-destaque);
     background-color: white;
     min-width: 130px;
 }
