@@ -307,12 +307,17 @@ const Supertabelamain = () => {
         } else {
             const { data, error } = await supabase
                 .from('repasses')
-                .insert({
-                    procedimento_id: linha.codigo,
-                    cidade_id: Number(cidadeId),
-                    porte_id: Number(meta.porteId),
-                    valor: valorNumerico,
-                })
+                .upsert(
+                    {
+                        procedimento_id: linha.codigo,
+                        cidade_id: Number(cidadeId),
+                        porte_id: Number(meta.porteId),
+                        valor: valorNumerico,
+                    },
+                    {
+                        onConflict: 'procedimento_id,cidade_id,porte_id',
+                    }
+                )
                 .select('id')
                 .single()
             erroPersistencia = error
