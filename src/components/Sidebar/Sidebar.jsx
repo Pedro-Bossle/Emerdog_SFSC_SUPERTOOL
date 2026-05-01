@@ -119,6 +119,10 @@ const menuItems = [
 
 const Sidebar = ({ open, onToggleManual, isPinned }) => {
     const navigate = useNavigate()
+    const [darkModeAtivo, setDarkModeAtivo] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return window.localStorage.getItem('sfsc-dark-mode') === '1'
+    })
     /**
      * Estado de submenus:
      * { [idDoMenu]: true/false }
@@ -199,16 +203,18 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
         }
     }
 
+    useEffect(() => {
+        if (darkModeAtivo) {
+            document.body.classList.add('dark-mode')
+            window.localStorage.setItem('sfsc-dark-mode', '1')
+        } else {
+            document.body.classList.remove('dark-mode')
+            window.localStorage.setItem('sfsc-dark-mode', '0')
+        }
+    }, [darkModeAtivo])
+
     return (
         <div className='layout'>
-            <button onClick={onToggleManual} className="toggle_btn">
-                <img
-                    src={open ? iconHide : iconShow}
-                    alt={isPinned ? "Desafixar Sidebar" : "Fixar Sidebar"}
-                    className="toggle_icon"
-                />
-            </button>
-
             <aside className={`sidebar ${open ? 'open' : 'closed'}`}>
                 <div className="sidebar_logo_wrap">
                     <img
@@ -250,6 +256,29 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
                         </div>
                     ))}
                 </nav>
+
+                <div className='sidebar_footer'>
+                    <button onClick={onToggleManual} className="toggle_btn" title={isPinned ? 'Desafixar sidebar' : 'Fixar sidebar'}>
+                        <img
+                            src={open ? iconHide : iconShow}
+                            alt={isPinned ? "Desafixar Sidebar" : "Fixar Sidebar"}
+                            className="toggle_icon"
+                        />
+                        <span className='toggle_text'>{isPinned ? 'Desafixar menu' : 'Fixar menu'}</span>
+                    </button>
+
+                    <button
+                        type='button'
+                        className='sidebar_darkmode_btn'
+                        onClick={() => setDarkModeAtivo((anterior) => !anterior)}
+                        title={darkModeAtivo ? 'Desativar modo escuro' : 'Ativar modo escuro'}
+                    >
+                        <span className='sidebar_darkmode_icon'>{darkModeAtivo ? '☀️' : '🌙'}</span>
+                        <span className='sidebar_darkmode_text'>
+                            {darkModeAtivo ? 'Modo claro' : 'Modo escuro'}
+                        </span>
+                    </button>
+                </div>
             </aside>
         </div>
     )

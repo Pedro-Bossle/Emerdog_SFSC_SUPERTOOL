@@ -1,0 +1,722 @@
+.supertabelacidades {
+    text-align: center;
+    margin: 0 2.5em 2.5em 2.5em;
+    color: var(--cinza-escuro);
+}
+
+.supertabelacidades hr {
+    border-radius: 10px;
+    margin: 10px 8em;
+    border: 1px solid var(--azul-claro);
+}
+
+.supertabelacidades_header {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: transparent;
+    backdrop-filter: none;
+    padding: 8px 0 10px 0;
+    box-shadow: none;
+    border-radius: 0;
+    transition: padding 0.2s ease, background-color 0.2s ease, backdrop-filter 0.2s ease;
+}
+
+.supertabelacidades_header h2 {
+    transition: font-size 0.2s ease, margin 0.2s ease, opacity 0.2s ease;
+}
+
+.supertabelacidades_header.is-compact {
+    padding: 4px 0 6px 0;
+    background: rgba(255, 255, 255, 0.25);
+    backdrop-filter: blur(6px);
+}
+
+.supertabelacidades_header.is-compact h2 {
+    font-size: 1.3rem;
+    margin: 0;
+    opacity: 0.95;
+}
+
+.supertabelacidades_filters {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: end;
+    gap: 12px;
+    text-align: center;
+    padding: 1em 1.25em;
+    margin: 0.75em auto;
+    max-width: 1200px;
+    background: #f8fbfd;
+    border: 1px solid #d7e8f2;
+    border-radius: 12px;
+}
+
+.supertabelacidades_header.is-compact .supertabelacidades_filters {
+    padding: 0.55em 1.5em;
+    margin: 0.35em auto;
+    box-shadow: 0 2px 10px rgba(30, 49, 72, 0.12);
+}
+
+.supertabelacidades_filter_item p {
+    margin: 0 0 6px 0;
+    font-size: 0.92rem;
+}
+
+.supertabelacidades_input,
+.supertabelacidades_select {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-destaque);
+    background: white;
+    min-width: 170px;
+}
+
+.supertabelacidades_filter_busca .supertabelacidades_input {
+    min-width: 280px;
+}
+
+.supertabelacidades_action_btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid var(--azul-destaque);
+    background: #e8f5ff;
+    color: #0a5d96;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.supertabelacidades_action_btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.supertabelacidades_action_btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 3px 10px rgba(30, 49, 72, 0.12);
+}
+
+.supertabelacidades_action_btn .ico {
+    color: #0a74bb;
+}
+
+.supertabelacidades_edit_wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 38px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid #b8d3e5;
+    background: #fff;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.supertabelacidades_edit_wrap input {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--azul-destaque);
+}
+
+.supertabelacidades_new_form {
+    max-width: 1200px;
+    margin: 0 auto 8px auto;
+    padding: 14px;
+    border: 1px solid #cde1ef;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(30, 49, 72, 0.06);
+    text-align: left;
+}
+
+.supertabelacidades_new_form h3 {
+    margin: 0 0 12px 0;
+    color: var(--azul-escuro);
+}
+
+.supertabelacidades_form_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 10px 12px;
+}
+
+.supertabelacidades_form_grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 0.9rem;
+}
+
+.supertabelacidades_form_grid label.full {
+    grid-column: 1 / -1;
+}
+
+.supertabelacidades_form_grid input,
+.supertabelacidades_form_grid select,
+.supertabelacidades_form_grid textarea {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #b8d3e5;
+    font-family: inherit;
+}
+
+.supertabelacidades_submit_btn {
+    margin-top: 12px;
+    padding: 8px 14px;
+    border-radius: 8px;
+    border: 1px solid #1f7ec2;
+    background: #2b90d7;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.supertabelacidades_alert {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    z-index: 1200;
+    max-width: 420px;
+    min-width: 280px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #2f87c6;
+    background: linear-gradient(180deg, #f1f8fc 0%, #e3f2fb 100%);
+    box-shadow: 0 8px 22px rgba(30, 49, 72, 0.18);
+}
+
+.supertabelacidades_alert_text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    text-align: left;
+}
+
+.supertabelacidades_alert_text strong {
+    color: #1e3148;
+    font-size: 0.92rem;
+}
+
+.supertabelacidades_alert_text span {
+    color: #30495f;
+    font-size: 0.88rem;
+    line-height: 1.3;
+}
+
+.supertabelacidades_alert_close {
+    border: 1px solid #8ab9d8;
+    background: #ffffff;
+    color: #1e3148;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.supertabelacidades_confirm_toast {
+    position: fixed;
+    top: 96px;
+    right: 18px;
+    z-index: 1200;
+    max-width: 420px;
+    min-width: 300px;
+    border: 1px solid #d1a2a2;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff9f9 0%, #ffecec 100%);
+    box-shadow: 0 8px 22px rgba(30, 49, 72, 0.18);
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.supertabelacidades_confirm_text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: left;
+}
+
+.supertabelacidades_confirm_text strong {
+    color: #7a2323;
+    font-size: 0.92rem;
+}
+
+.supertabelacidades_confirm_text span {
+    color: #5f2d2d;
+    font-size: 0.88rem;
+    line-height: 1.3;
+}
+
+.supertabelacidades_confirm_actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.supertabelacidades_confirm_btn {
+    border: 1px solid #b9cfde;
+    background: #ffffff;
+    color: #35556d;
+    border-radius: 8px;
+    padding: 7px 11px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.supertabelacidades_confirm_btn.danger {
+    border-color: #c97a7a;
+    background: #ffdede;
+    color: #7a2323;
+}
+
+.supertabelacidades_table_container {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 22px;
+    margin-top: 12px;
+}
+
+.categoria_secao {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid #d9e7ef;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(30, 49, 72, 0.06);
+    padding: 12px;
+    overflow-x: hidden;
+}
+
+.categoria_titulo {
+    text-align: left;
+    font-size: 1.8rem;
+    color: var(--azul-escuro);
+    margin: 0 0 4px 0;
+}
+
+.categoria_header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.categoria_contagem {
+    font-size: 0.9rem;
+    color: #7390a5;
+    font-weight: 600;
+    padding-right: 2px;
+}
+
+.table_main {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+    table-layout: fixed;
+}
+
+.table_main td {
+    padding: 6px 10px;
+    border-bottom: 1px solid #edf3f7;
+    font-size: 0.95rem;
+}
+
+.table_main tbody tr:nth-child(even) {
+    background: #f9fcff;
+}
+
+.table_main tbody tr:hover {
+    background: #eef7fd;
+}
+
+.table_header {
+    padding: 8px 10px;
+    cursor: pointer;
+    user-select: none;
+    background: #f1f8fc;
+    font-weight: 700;
+    border-bottom: 1px solid #cadde9;
+}
+
+.table_main th {
+    border: 1px solid var(--azul-escuro);
+}
+
+.table_text_left {
+    text-align: left;
+    padding-left: 8px;
+    font-weight: 500;
+}
+
+.table_cell_input {
+    width: 100%;
+    min-width: 72px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #b9cfde;
+    background: #ffffff;
+    text-align: right;
+    font-size: 0.86rem;
+}
+
+.row_delete_btn {
+    border: 1px solid #8ec1e0;
+    background: #eaf6ff;
+    color: #0a74bb;
+    border-radius: 6px;
+    cursor: pointer;
+    padding: 3px 8px;
+}
+
+.row_delete_btn.is-confirm {
+    border-color: #cc8d8d;
+    background: #ffecec;
+}
+
+.row_add_line td {
+    text-align: left;
+    background: #f5fbff;
+}
+
+.row_add_btn {
+    border: 1px dashed #64a6d4;
+    background: #edf7ff;
+    color: #0a74bb;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.row_add_inline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.row_add_input {
+    flex: 1;
+    min-width: 280px;
+    max-width: 560px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #92bfdd;
+}
+
+.row_add_suggest_wrap {
+    position: relative;
+    width: min(560px, 100%);
+}
+
+.row_add_suggest_wrap .row_add_input {
+    width: 100%;
+    max-width: none;
+}
+
+.row_add_suggest_list {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 40;
+    max-height: 210px;
+    overflow-y: auto;
+    border: 1px solid #9fc7e1;
+    border-radius: 10px;
+    background: #f4fbff;
+    box-shadow: 0 8px 20px rgba(30, 49, 72, 0.15);
+}
+
+.row_add_suggest_item {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    border-bottom: 1px solid #dcecf7;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    color: #15364f;
+}
+
+.row_add_suggest_item:hover,
+.row_add_suggest_item.is-active {
+    background: #dff0fb;
+}
+
+.row_add_suggest_item span {
+    font-weight: 700;
+    color: #0d5e95;
+    min-width: 92px;
+}
+
+.row_add_suggest_item small {
+    color: #29516e;
+}
+
+.row_add_suggest_empty {
+    padding: 10px;
+    color: #40617a;
+    font-size: 0.9rem;
+}
+
+.row_add_cancel_btn {
+    border: 1px solid #b9cfde;
+    background: #ffffff;
+    color: #35556d;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.manager_modal_overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1100;
+    background: rgba(18, 39, 58, 0.22);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.manager_modal {
+    width: min(980px, 100%);
+    max-height: min(82vh, 760px);
+    overflow: hidden;
+    border-radius: 14px;
+    border: 1px solid #c2dced;
+    background: #ffffff;
+    box-shadow: 0 16px 38px rgba(16, 40, 61, 0.24);
+    display: flex;
+    flex-direction: column;
+}
+
+.manager_modal_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid #d5e7f3;
+    background: #f4faff;
+}
+
+.manager_header_actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.manager_add_city_btn {
+    border: 1px solid #6aa7cf;
+    border-radius: 8px;
+    background: #e9f6ff;
+    color: #0f6299;
+    font-weight: 700;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+
+.manager_modal_header h3 {
+    margin: 0;
+    color: var(--azul-escuro);
+}
+
+.manager_close_btn {
+    border: 1px solid #a8cce3;
+    border-radius: 8px;
+    width: 28px;
+    height: 28px;
+    background: #fff;
+    cursor: pointer;
+    color: #264c67;
+}
+
+.manager_duplicate_bar {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e4eff7;
+    background: #fbfdff;
+}
+
+.manager_add_bar,
+.manager_edit_bar {
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid #e4eff7;
+    background: #fbfdff;
+}
+
+.manager_duplicate_bar input {
+    min-width: 220px;
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #9ac0d9;
+}
+
+.manager_add_bar input,
+.manager_edit_bar input,
+.manager_add_bar select,
+.manager_edit_bar select {
+    min-width: 190px;
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #9ac0d9;
+}
+
+.manager_action_btn {
+    border: 1px solid #9ac0d9;
+    border-radius: 8px;
+    background: #fff;
+    color: #2d536f;
+    padding: 7px 10px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.manager_action_btn.save {
+    border-color: #4d9ad0;
+    background: #e8f5ff;
+    color: #0f6299;
+}
+
+.manager_table_wrap {
+    overflow: auto;
+}
+
+.manager_table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+.manager_table th,
+.manager_table td {
+    text-align: left;
+    padding: 9px 10px;
+    border-bottom: 1px solid #e6f0f7;
+    white-space: nowrap;
+}
+
+.manager_table th {
+    background: #f1f8fd;
+    color: #1e4360;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    cursor: pointer;
+    user-select: none;
+}
+
+.manager_region_name {
+    color: #5d7b92;
+}
+
+.manager_actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.manager_icon_btn {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #9ec6df;
+    border-radius: 8px;
+    background: #ebf7ff;
+    cursor: pointer;
+}
+
+.manager_icon_btn:hover {
+    background: #dff1fd;
+}
+
+.manager_icon_btn.danger {
+    border-color: #d0a3a3;
+    background: #fff1f1;
+}
+
+.manager_icon_btn.danger.is-confirm {
+    border-color: #b56969;
+    background: #ffdede;
+}
+
+.cidade_vazia_wrap {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    text-align: left;
+    border: 1px solid #d5e7f3;
+    border-radius: 12px;
+    background: #f9fcff;
+    padding: 14px;
+}
+
+.cidade_vazia_wrap p {
+    margin: 0;
+    color: #2a4a63;
+    font-weight: 600;
+}
+
+.cidade_vazia_form {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.cidade_vazia_form label {
+    font-size: 0.92rem;
+    color: #32566f;
+}
+
+.cidade_vazia_form textarea {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid #9fc5de;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.cidade_vazia_btn {
+    align-self: flex-start;
+    border: 1px solid #4d9ad0;
+    border-radius: 8px;
+    background: #e8f5ff;
+    color: #0f6299;
+    padding: 8px 12px;
+    font-weight: 700;
+    cursor: pointer;
+}

@@ -1,0 +1,1499 @@
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import { supabase } from '../../../lib/supabase'
+import './Supertabelacidades.css'
+
+const Supertabelacidades = () => {
+    const [cidades, setCidades] = useState([])
+    const [regioes, setRegioes] = useState([])
+    const [categorias, setCategorias] = useState([])
+    const [portes, setPortes] = useState([])
+    const [procedimentos, setProcedimentos] = useState([])
+    const [linhas, setLinhas] = useState([])
+
+    const [cidadeId, setCidadeId] = useState('')
+    const [termoBusca, setTermoBusca] = useState('')
+    const [edicaoAtiva, setEdicaoAtiva] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [erroDetalhe, setErroDetalhe] = useState('')
+    const [headerCompacto, setHeaderCompacto] = useState(false)
+    const [ordenacaoPorCategoria, setOrdenacaoPorCategoria] = useState({})
+
+    const [mostrarGerenciarModal, setMostrarGerenciarModal] = useState(false)
+    const [repassesResumo, setRepassesResumo] = useState([])
+    const [cidadeDuplicarOrigem, setCidadeDuplicarOrigem] = useState(null)
+    const [novoNomeCidadeDuplicada, setNovoNomeCidadeDuplicada] = useState('')
+    const [ordenacaoGerenciador, setOrdenacaoGerenciador] = useState({ coluna: 'nome', direcao: 'asc' })
+    const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(null)
+    const [mostrarAdicionarCidade, setMostrarAdicionarCidade] = useState(false)
+    const [novaCidadeNome, setNovaCidadeNome] = useState('')
+    const [novaCidadeRegiaoId, setNovaCidadeRegiaoId] = useState('')
+    const [cidadeEdicao, setCidadeEdicao] = useState(null)
+    const [cidadeEdicaoNome, setCidadeEdicaoNome] = useState('')
+    const [cidadeEdicaoRegiaoId, setCidadeEdicaoRegiaoId] = useState('')
+    const [codigosInicializacaoCidade, setCodigosInicializacaoCidade] = useState('')
+    const [adicaoMassaAtiva, setAdicaoMassaAtiva] = useState(false)
+    const [categoriaEmInclusao, setCategoriaEmInclusao] = useState(null)
+    const [textoNovoProcedimento, setTextoNovoProcedimento] = useState('')
+    const [novoProcedimentoSelecionadoCodigo, setNovoProcedimentoSelecionadoCodigo] = useState('')
+
+    const normalizarPorteNome = (nome) =>
+        String(nome || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toUpperCase()
+
+    const normalizarTextoBusca = (texto) =>
+        String(texto || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toUpperCase()
+
+    const normalizarNumeroEntrada = (valorTexto) => {
+        const texto = String(valorTexto || '').trim().replace(/\s/g, '')
+        if (!texto) return NaN
+
+        const temPonto = texto.includes('.')
+        const temVirgula = texto.includes(',')
+        if (temPonto && temVirgula) {
+            return Number(texto.replace(/\./g, '').replace(',', '.'))
+        }
+
+        if (temVirgula) {
+            return Number(texto.replace(',', '.'))
+        }
+
+        return Number(texto)
+    }
+
+    const mostrarErroToast = (mensagem) => {
+        setErroDetalhe('')
+        setTimeout(() => setErroDetalhe(mensagem), 0)
+    }
+
+    const abrirConfirmacaoExclusao = (mensagem, onConfirmar) => {
+        setConfirmacaoExclusao({ mensagem, onConfirmar })
+    }
+
+    const obterPorteIdPorLetra = (letra) => {
+        const alvo = String(letra || '').toUpperCase()
+        const porte = portes.find((item) => {
+            const nome = normalizarPorteNome(item.nome)
+            return nome === alvo || nome.startsWith(alvo)
+        })
+        return porte ? String(porte.id) : ''
+    }
+
+    const carregarResumoRepasses = useCallback(async () => {
+        const tamanhoPagina = 1000
+        let inicio = 0
+        let acumulado = []
+
+        while (true) {
+            const fim = inicio + tamanhoPagina - 1
+            const { data, error } = await supabase
+                .from('repasses')
+                .select('cidade_id, procedimento_id')
+                .range(inicio, fim)
+
+            if (error) {
+                mostrarErroToast(`Erro ao atualizar contagem de procedimentos: ${error.message}`)
+                return
+            }
+
+            const lote = data || []
+            acumulado = [...acumulado, ...lote]
+            if (lote.length < tamanhoPagina) break
+            inicio += tamanhoPagina
+        }
+
+        setRepassesResumo(acumulado)
+    }, [])
+
+    const carregarBase = useCallback(async () => {
+        try {
+            setLoading(true)
+            setErroDetalhe('')
+
+            const [
+                { data: cidadesData, error: errCidades },
+                { data: regioesData, error: errRegioes },
+                { data: categoriasData, error: errCategorias },
+                { data: portesData, error: errPortes },
+                { data: procedimentosData, error: errProcedimentos },
+            ] = await Promise.all([
+                supabase.from('cidades').select('id, nome, regiao_id').order('nome', { ascending: true }),
+                supabase.from('regioes').select('id, nome').order('nome', { ascending: true }),
+                supabase.from('categorias').select('id, nome').gte('id', 3).lte('id', 25).order('id', { ascending: true }),
+                supabase.from('portes').select('id, nome').order('id', { ascending: true }),
+                supabase.from('procedimentos').select('codigo, nome, categoria_id').order('codigo', { ascending: true }),
+            ])
+
+            if (errCidades || errRegioes || errCategorias || errPortes || errProcedimentos) {
+                const detalhes = [errCidades?.message, errRegioes?.message, errCategorias?.message, errPortes?.message, errProcedimentos?.message]
+                    .filter(Boolean)
+                    .join(' | ')
+                setErroDetalhe(`Erro ao carregar dados base: ${detalhes}`)
+                return
+            }
+
+            setCidades(cidadesData || [])
+            setRegioes(regioesData || [])
+            setCategorias(categoriasData || [])
+            setPortes(portesData || [])
+            setProcedimentos(procedimentosData || [])
+
+            if (!cidadeId && (cidadesData || []).length > 0) {
+                setCidadeId(String(cidadesData[0].id))
+            }
+        } catch (error) {
+            setErroDetalhe(`Falha ao carregar dados base: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }, [cidadeId])
+
+    const buscarTabelaCidade = useCallback(async () => {
+        if (!cidadeId || portes.length === 0) {
+            setLinhas([])
+            return
+        }
+
+        try {
+            setLoading(true)
+            setErroDetalhe('')
+
+            const { data: repassesData, error: errRepasses } = await supabase
+                .from('repasses')
+                .select('id, procedimento_id, porte_id, valor')
+                .eq('cidade_id', cidadeId)
+
+            if (errRepasses) {
+                setErroDetalhe(`Erro ao buscar repasses da cidade: ${errRepasses.message}`)
+                return
+            }
+
+            const repasses = repassesData || []
+            if (repasses.length === 0) {
+                setLinhas([])
+                return
+            }
+
+            const codigos = [...new Set(repasses.map((item) => String(item.procedimento_id)))]
+            const { data: procedimentosData, error: errProcedimentos } = await supabase
+                .from('procedimentos')
+                .select('codigo, nome, categoria_id')
+                .in('codigo', codigos)
+
+            if (errProcedimentos) {
+                setErroDetalhe(`Erro ao carregar procedimentos: ${errProcedimentos.message}`)
+                return
+            }
+
+            const mapaProcedimentos = new Map(
+                (procedimentosData || []).map((item) => [
+                    String(item.codigo),
+                    { nome: String(item.nome), categoriaId: item.categoria_id },
+                ])
+            )
+
+            const mapaRepasses = new Map()
+            repasses.forEach((item) => {
+                const codigo = String(item.procedimento_id)
+                const porteId = String(item.porte_id)
+                if (!mapaRepasses.has(codigo)) mapaRepasses.set(codigo, {})
+                mapaRepasses.get(codigo)[porteId] = {
+                    repasseId: item.id,
+                    valor: Number(item.valor || 0),
+                }
+            })
+
+            const porteIdP = obterPorteIdPorLetra('P')
+            const porteIdM = obterPorteIdPorLetra('M')
+            const porteIdG = obterPorteIdPorLetra('G')
+
+            const linhasMontadas = [...mapaRepasses.entries()].map(([codigo, valoresPorPorte]) => ({
+                codigo,
+                procedimento: mapaProcedimentos.get(codigo)?.nome || codigo,
+                categoriaId: mapaProcedimentos.get(codigo)?.categoriaId || null,
+                porteP: porteIdP ? Number(valoresPorPorte[porteIdP]?.valor || 0) : 0,
+                porteM: porteIdM ? Number(valoresPorPorte[porteIdM]?.valor || 0) : 0,
+                porteG: porteIdG ? Number(valoresPorPorte[porteIdG]?.valor || 0) : 0,
+                repasseIdP: porteIdP ? valoresPorPorte[porteIdP]?.repasseId || null : null,
+                repasseIdM: porteIdM ? valoresPorPorte[porteIdM]?.repasseId || null : null,
+                repasseIdG: porteIdG ? valoresPorPorte[porteIdG]?.repasseId || null : null,
+                porteIdP,
+                porteIdM,
+                porteIdG,
+            }))
+
+            setLinhas(linhasMontadas)
+        } catch (error) {
+            setErroDetalhe(`Falha ao carregar tabela da cidade: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }, [cidadeId, portes])
+
+    const linhasFiltradas = useMemo(() => {
+        const termo = termoBusca.trim().toLowerCase()
+        if (!termo) return linhas
+        return linhas.filter((linha) => {
+            const codigo = String(linha.codigo || '').toLowerCase()
+            const procedimento = String(linha.procedimento || '').toLowerCase()
+            const categoriaNome = String(
+                categorias.find((categoria) => Number(categoria.id) === Number(linha.categoriaId))?.nome || ''
+            ).toLowerCase()
+            return codigo.includes(termo) || procedimento.includes(termo) || categoriaNome.includes(termo)
+        })
+    }, [linhas, termoBusca, categorias])
+
+    const handleOrdenarCategoria = (categoriaId, coluna) => {
+        setOrdenacaoPorCategoria((anterior) => {
+            const atual = anterior[categoriaId] || { coluna: 'codigo', direcao: 'asc' }
+            const proxima =
+                atual.coluna === coluna
+                    ? { coluna, direcao: atual.direcao === 'asc' ? 'desc' : 'asc' }
+                    : { coluna, direcao: 'asc' }
+            return { ...anterior, [categoriaId]: proxima }
+        })
+    }
+
+    const obterIndicadorOrdenacao = (categoriaId, coluna) => {
+        const atual = ordenacaoPorCategoria[categoriaId] || { coluna: 'codigo', direcao: 'asc' }
+        if (atual.coluna !== coluna) return ''
+        return atual.direcao === 'asc' ? ' ▲' : ' ▼'
+    }
+
+    const ordenarLinhas = (linhasParaOrdenar, categoriaId) => {
+        const resultado = [...linhasParaOrdenar]
+        const atual = ordenacaoPorCategoria[categoriaId] || { coluna: 'codigo', direcao: 'asc' }
+        const fator = atual.direcao === 'asc' ? 1 : -1
+
+        resultado.sort((a, b) => {
+            const valorA = a[atual.coluna]
+            const valorB = b[atual.coluna]
+            if (typeof valorA === 'number' && typeof valorB === 'number') {
+                return (valorA - valorB) * fator
+            }
+            return String(valorA ?? '').localeCompare(String(valorB ?? ''), 'pt-BR', { sensitivity: 'base' }) * fator
+        })
+
+        return resultado
+    }
+
+    const secoesPorCategoria = useMemo(
+        () =>
+            categorias
+                .map((categoria) => ({
+                    categoriaId: categoria.id,
+                    categoriaNome: categoria.nome,
+                    linhas: ordenarLinhas(
+                        linhasFiltradas.filter((linha) => Number(linha.categoriaId) === Number(categoria.id)),
+                        categoria.id
+                    ),
+                }))
+                .filter((secao) => secao.linhas.length > 0),
+        [categorias, linhasFiltradas, ordenacaoPorCategoria]
+    )
+
+    const totalProcedimentosPorCategoria = useMemo(() => {
+        const mapa = new Map()
+        procedimentos.forEach((item) => {
+            const categoriaId = Number(item.categoria_id)
+            if (!mapa.has(categoriaId)) {
+                mapa.set(categoriaId, 0)
+            }
+            mapa.set(categoriaId, mapa.get(categoriaId) + 1)
+        })
+        return mapa
+    }, [procedimentos])
+
+    const atualizarValorLocal = (codigo, campo, valor) => {
+        setLinhas((anteriores) =>
+            anteriores.map((linha) =>
+                linha.codigo === codigo
+                    ? {
+                        ...linha,
+                        [campo]: valor === '' ? '' : Number(valor),
+                    }
+                    : linha
+            )
+        )
+    }
+
+    const salvarRepasse = async (linha, campo) => {
+        const metaPorCampo = {
+            porteP: { porteId: linha.porteIdP, repasseId: linha.repasseIdP },
+            porteM: { porteId: linha.porteIdM, repasseId: linha.repasseIdM },
+            porteG: { porteId: linha.porteIdG, repasseId: linha.repasseIdG },
+        }
+        const meta = metaPorCampo[campo]
+        if (!meta?.porteId) return
+
+        const valor = Number(linha[campo] || 0)
+        if (Number.isNaN(valor)) {
+            mostrarErroToast('Valor inválido para repasse.')
+            return
+        }
+
+        if (meta.repasseId) {
+            const { error } = await supabase.from('repasses').update({ valor }).eq('id', meta.repasseId)
+            if (error) mostrarErroToast(`Erro ao salvar valor: ${error.message}`)
+            return
+        }
+
+        const { data, error } = await supabase
+            .from('repasses')
+            .insert({
+                cidade_id: Number(cidadeId),
+                procedimento_id: linha.codigo,
+                porte_id: Number(meta.porteId),
+                valor,
+            })
+            .select('id')
+            .single()
+
+        if (error) {
+            mostrarErroToast(`Erro ao criar repasse: ${error.message}`)
+            return
+        }
+
+        setLinhas((anteriores) =>
+            anteriores.map((item) => {
+                if (item.codigo !== linha.codigo) return item
+                if (campo === 'porteP') return { ...item, repasseIdP: data.id }
+                if (campo === 'porteM') return { ...item, repasseIdM: data.id }
+                return { ...item, repasseIdG: data.id }
+            })
+        )
+    }
+
+    const processarColagemRepasse = async (event, secao, linhaIndexInicial, campoInicial) => {
+        event.preventDefault()
+
+        const texto = event.clipboardData?.getData('text') || ''
+        const linhasColadas = texto
+            .replace(/\r/g, '')
+            .split('\n')
+            .filter((linha) => linha.length > 0)
+            .map((linha) => linha.split('\t'))
+
+        if (linhasColadas.length === 0) return
+
+        const camposPorte = ['porteP', 'porteM', 'porteG']
+        const colunaInicial = camposPorte.indexOf(campoInicial)
+        if (colunaInicial < 0) return
+
+        for (let i = 0; i < linhasColadas.length; i += 1) {
+            const linhaTabela = secao.linhas[linhaIndexInicial + i]
+            if (!linhaTabela) break
+
+            const colunas = linhasColadas[i]
+            for (let j = 0; j < colunas.length; j += 1) {
+                const colunaDestino = colunaInicial + j
+                if (colunaDestino > 2) break
+
+                const campoDestino = camposPorte[colunaDestino]
+                const valorBruto = String(colunas[j] || '').trim()
+                if (!valorBruto) continue
+
+                const valorNumerico = normalizarNumeroEntrada(valorBruto)
+                if (Number.isNaN(valorNumerico)) {
+                    mostrarErroToast(`Valor inválido na colagem: "${valorBruto}"`)
+                    continue
+                }
+
+                setLinhas((anteriores) =>
+                    anteriores.map((item) =>
+                        item.codigo === linhaTabela.codigo
+                            ? { ...item, [campoDestino]: valorNumerico }
+                            : item
+                    )
+                )
+
+                const linhaAtualizada = {
+                    ...linhaTabela,
+                    [campoDestino]: valorNumerico,
+                }
+                await salvarRepasse(linhaAtualizada, campoDestino)
+            }
+        }
+    }
+
+    const excluirProcedimento = async (linha, opcoes = {}) => {
+        const executarExclusao = async () => {
+            const { error } = await supabase
+                .from('repasses')
+                .delete()
+                .eq('cidade_id', cidadeId)
+                .eq('procedimento_id', linha.codigo)
+
+            if (error) {
+                mostrarErroToast(`Erro ao excluir procedimento da cidade: ${error.message}`)
+                return
+            }
+
+            setLinhas((anteriores) => anteriores.filter((item) => item.codigo !== linha.codigo))
+            setRepassesResumo((anteriores) =>
+                anteriores.filter(
+                    (item) =>
+                        !(
+                            String(item.cidade_id) === String(cidadeId) &&
+                            String(item.procedimento_id).toUpperCase() === String(linha.codigo).toUpperCase()
+                        )
+                )
+            )
+        }
+
+        if (opcoes.ignorarConfirmacao) {
+            await executarExclusao()
+            return
+        }
+
+        abrirConfirmacaoExclusao(
+            `Excluir o procedimento ${linha.codigo} desta cidade?`,
+            executarExclusao
+        )
+    }
+
+    const obterSugestoesProcedimentos = (categoriaId) => {
+        const codigosDaCidade = new Set(
+            linhas
+                .filter((linha) => Number(linha.categoriaId) === Number(categoriaId))
+                .map((linha) => String(linha.codigo).toUpperCase())
+        )
+
+        return procedimentos.filter(
+            (item) =>
+                Number(item.categoria_id) === Number(categoriaId) &&
+                !codigosDaCidade.has(String(item.codigo).toUpperCase())
+        )
+    }
+
+    const sugestoesFiltradasInclusao = useMemo(() => {
+        if (!categoriaEmInclusao) return []
+        const base = obterSugestoesProcedimentos(categoriaEmInclusao)
+        const termo = normalizarTextoBusca(textoNovoProcedimento)
+        if (!termo) return base.slice(0, 30)
+
+        return base
+            .filter((item) => {
+                const codigo = normalizarTextoBusca(item.codigo)
+                const nome = normalizarTextoBusca(item.nome)
+                return codigo.includes(termo) || nome.includes(termo)
+            })
+            .slice(0, 30)
+    }, [categoriaEmInclusao, textoNovoProcedimento, linhas, procedimentos])
+
+    const confirmarNovoProcedimentoCategoria = async (categoriaId) => {
+        const sugestoes = obterSugestoesProcedimentos(categoriaId)
+        const entrada = normalizarTextoBusca(textoNovoProcedimento)
+        if (!entrada) {
+            mostrarErroToast('Digite ou selecione um procedimento da lista.')
+            return
+        }
+
+        let encontrado = null
+        if (novoProcedimentoSelecionadoCodigo) {
+            encontrado = sugestoes.find(
+                (item) => normalizarTextoBusca(item.codigo) === normalizarTextoBusca(novoProcedimentoSelecionadoCodigo)
+            )
+        }
+
+        if (!encontrado) {
+            encontrado = sugestoes.find((item) => {
+                const codigo = normalizarTextoBusca(item.codigo)
+                const nome = normalizarTextoBusca(item.nome)
+                const opcaoCodigoNome = normalizarTextoBusca(`${item.codigo} - ${item.nome}`)
+                const opcaoNomeCodigo = normalizarTextoBusca(`${item.nome} - ${item.codigo}`)
+                return entrada === codigo || entrada === nome || entrada === opcaoCodigoNome || entrada === opcaoNomeCodigo
+            })
+        }
+
+        if (!encontrado) {
+            mostrarErroToast('Selecione um procedimento sugerido da mesma categoria.')
+            return
+        }
+
+        const codigoNormalizado = String(encontrado.codigo).toUpperCase()
+
+        const porteIds = [obterPorteIdPorLetra('P'), obterPorteIdPorLetra('M'), obterPorteIdPorLetra('G')].filter(Boolean)
+        if (porteIds.length === 0) {
+            mostrarErroToast('Portes P/M/G não encontrados para criação do procedimento.')
+            return
+        }
+
+        const payload = porteIds.map((porteId) => ({
+            cidade_id: Number(cidadeId),
+            procedimento_id: codigoNormalizado,
+            porte_id: Number(porteId),
+            valor: 0,
+        }))
+
+        const { data: repassesCriados, error } = await supabase
+            .from('repasses')
+            .upsert(payload, { onConflict: 'procedimento_id,cidade_id,porte_id' })
+            .select('id, porte_id, valor')
+        if (error) {
+            mostrarErroToast(`Erro ao adicionar procedimento na categoria: ${error.message}`)
+            return
+        }
+
+        const mapaPorPorte = new Map((repassesCriados || []).map((item) => [String(item.porte_id), item]))
+        const porteIdP = obterPorteIdPorLetra('P')
+        const porteIdM = obterPorteIdPorLetra('M')
+        const porteIdG = obterPorteIdPorLetra('G')
+
+        setLinhas((anteriores) => {
+            const idx = anteriores.findIndex((item) => String(item.codigo).toUpperCase() === codigoNormalizado)
+            if (idx >= 0) {
+                const atual = anteriores[idx]
+                const atualizado = {
+                    ...atual,
+                    porteP: porteIdP ? Number(mapaPorPorte.get(String(porteIdP))?.valor ?? atual.porteP ?? 0) : atual.porteP,
+                    porteM: porteIdM ? Number(mapaPorPorte.get(String(porteIdM))?.valor ?? atual.porteM ?? 0) : atual.porteM,
+                    porteG: porteIdG ? Number(mapaPorPorte.get(String(porteIdG))?.valor ?? atual.porteG ?? 0) : atual.porteG,
+                    repasseIdP: porteIdP ? mapaPorPorte.get(String(porteIdP))?.id ?? atual.repasseIdP : atual.repasseIdP,
+                    repasseIdM: porteIdM ? mapaPorPorte.get(String(porteIdM))?.id ?? atual.repasseIdM : atual.repasseIdM,
+                    repasseIdG: porteIdG ? mapaPorPorte.get(String(porteIdG))?.id ?? atual.repasseIdG : atual.repasseIdG,
+                }
+                const copia = [...anteriores]
+                copia[idx] = atualizado
+                return copia
+            }
+
+            return [
+                ...anteriores,
+                {
+                    codigo: codigoNormalizado,
+                    procedimento: String(encontrado.nome || codigoNormalizado),
+                    categoriaId: encontrado.categoria_id,
+                    porteP: porteIdP ? Number(mapaPorPorte.get(String(porteIdP))?.valor || 0) : 0,
+                    porteM: porteIdM ? Number(mapaPorPorte.get(String(porteIdM))?.valor || 0) : 0,
+                    porteG: porteIdG ? Number(mapaPorPorte.get(String(porteIdG))?.valor || 0) : 0,
+                    repasseIdP: porteIdP ? mapaPorPorte.get(String(porteIdP))?.id || null : null,
+                    repasseIdM: porteIdM ? mapaPorPorte.get(String(porteIdM))?.id || null : null,
+                    repasseIdG: porteIdG ? mapaPorPorte.get(String(porteIdG))?.id || null : null,
+                    porteIdP,
+                    porteIdM,
+                    porteIdG,
+                },
+            ]
+        })
+
+        setCategoriaEmInclusao(null)
+        setTextoNovoProcedimento('')
+        setNovoProcedimentoSelecionadoCodigo('')
+    }
+
+    const cidadesGerenciaveis = useMemo(() => {
+        const mapaRegioes = new Map(regioes.map((regiao) => [Number(regiao.id), regiao.nome]))
+        const mapaProcedimentosAtivos = new Map()
+
+        repassesResumo.forEach((item) => {
+            const cidade = Number(item.cidade_id)
+            if (!cidade) return
+            const procedimento = String(item.procedimento_id || '').trim().toUpperCase()
+            if (!procedimento) return
+            if (!mapaProcedimentosAtivos.has(cidade)) {
+                mapaProcedimentosAtivos.set(cidade, new Set())
+            }
+            mapaProcedimentosAtivos.get(cidade).add(procedimento)
+        })
+
+        return cidades
+            .map((cidade) => ({
+                id: cidade.id,
+                nome: cidade.nome,
+                regiaoId: cidade.regiao_id,
+                regiaoNome: cidade.regiao_id ? mapaRegioes.get(Number(cidade.regiao_id)) || '-' : '-',
+                procedimentosAtivos: mapaProcedimentosAtivos.get(Number(cidade.id))?.size || 0,
+            }))
+            .sort((a, b) => String(a.nome).localeCompare(String(b.nome), 'pt-BR'))
+    }, [cidades, regioes, repassesResumo])
+
+    const cidadesGerenciaveisOrdenadas = useMemo(() => {
+        const lista = [...cidadesGerenciaveis]
+        const { coluna, direcao } = ordenacaoGerenciador
+        const fator = direcao === 'asc' ? 1 : -1
+
+        lista.sort((a, b) => {
+            const valorA = a[coluna]
+            const valorB = b[coluna]
+            if (typeof valorA === 'number' && typeof valorB === 'number') {
+                return (valorA - valorB) * fator
+            }
+            return String(valorA ?? '').localeCompare(String(valorB ?? ''), 'pt-BR', { sensitivity: 'base' }) * fator
+        })
+
+        return lista
+    }, [cidadesGerenciaveis, ordenacaoGerenciador])
+
+    const ordenarGerenciador = (coluna) => {
+        setOrdenacaoGerenciador((anterior) =>
+            anterior.coluna === coluna
+                ? { coluna, direcao: anterior.direcao === 'asc' ? 'desc' : 'asc' }
+                : { coluna, direcao: 'asc' }
+        )
+    }
+
+    const indicadorOrdenacaoGerenciador = (coluna) => {
+        if (ordenacaoGerenciador.coluna !== coluna) return ''
+        return ordenacaoGerenciador.direcao === 'asc' ? ' ▲' : ' ▼'
+    }
+
+    const acessarCidadeNoGerenciador = (id) => {
+        setCidadeId(String(id))
+        setMostrarGerenciarModal(false)
+        setCidadeDuplicarOrigem(null)
+        setNovoNomeCidadeDuplicada('')
+        setMostrarAdicionarCidade(false)
+        setCidadeEdicao(null)
+    }
+
+    const excluirCidadeNoGerenciador = async (cidade, opcoes = {}) => {
+        const executarExclusao = async () => {
+            const { error: errRepasses } = await supabase.from('repasses').delete().eq('cidade_id', cidade.id)
+            if (errRepasses) {
+                mostrarErroToast(`Erro ao excluir tabela da cidade: ${errRepasses.message}`)
+                return
+            }
+
+            const { error: errVets } = await supabase.from('veterinarios').delete().eq('cidade_id', cidade.id)
+            if (errVets) {
+                mostrarErroToast(`Erro ao remover vínculos da cidade: ${errVets.message}`)
+                return
+            }
+
+            const { error: errCidade } = await supabase.from('cidades').delete().eq('id', cidade.id)
+            if (errCidade) {
+                mostrarErroToast(`Erro ao excluir cidade: ${errCidade.message}`)
+                return
+            }
+
+            await carregarBase()
+            if (String(cidadeId) === String(cidade.id)) {
+                const proxima = cidadesGerenciaveis.find((item) => String(item.id) !== String(cidade.id))
+                setCidadeId(proxima ? String(proxima.id) : '')
+                setLinhas([])
+            }
+        }
+
+        if (opcoes.ignorarConfirmacao) {
+            await executarExclusao()
+            return
+        }
+
+        abrirConfirmacaoExclusao(
+            `Excluir a cidade "${cidade.nome}" e toda a tabela vinculada?`,
+            executarExclusao
+        )
+    }
+
+    const iniciarDuplicacaoCidade = (cidade) => {
+        setMostrarAdicionarCidade(false)
+        setCidadeEdicao(null)
+        setCidadeDuplicarOrigem(cidade)
+        setNovoNomeCidadeDuplicada(`${cidade.nome} - Cópia`)
+    }
+
+    const abrirAdicionarCidade = () => {
+        setCidadeDuplicarOrigem(null)
+        setCidadeEdicao(null)
+        setNovaCidadeNome('')
+        setNovaCidadeRegiaoId('')
+        setMostrarAdicionarCidade(true)
+    }
+
+    const salvarNovaCidade = async () => {
+        const nome = novaCidadeNome.trim()
+        if (!nome) {
+            mostrarErroToast('Informe o nome da cidade.')
+            return
+        }
+
+        setLoading(true)
+        try {
+            const { data, error } = await supabase
+                .from('cidades')
+                .insert({
+                    nome,
+                    regiao_id: novaCidadeRegiaoId ? Number(novaCidadeRegiaoId) : null,
+                })
+                .select('id')
+                .single()
+
+            if (error) {
+                mostrarErroToast(`Erro ao adicionar cidade: ${error.message}`)
+                return
+            }
+
+            await carregarBase()
+            setCidadeId(String(data.id))
+            setCodigosInicializacaoCidade('')
+            setMostrarAdicionarCidade(false)
+            setNovaCidadeNome('')
+            setNovaCidadeRegiaoId('')
+        } catch (error) {
+            mostrarErroToast(`Falha ao adicionar cidade: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const iniciarEdicaoCidade = (cidade) => {
+        setCidadeDuplicarOrigem(null)
+        setMostrarAdicionarCidade(false)
+        setCidadeEdicao(cidade)
+        setCidadeEdicaoNome(cidade.nome)
+        setCidadeEdicaoRegiaoId(cidade.regiaoId ? String(cidade.regiaoId) : '')
+    }
+
+    const salvarEdicaoCidade = async () => {
+        if (!cidadeEdicao) return
+        const nome = cidadeEdicaoNome.trim()
+        if (!nome) {
+            mostrarErroToast('Informe o nome da cidade para editar.')
+            return
+        }
+
+        setLoading(true)
+        try {
+            const { error } = await supabase
+                .from('cidades')
+                .update({
+                    nome,
+                    regiao_id: cidadeEdicaoRegiaoId ? Number(cidadeEdicaoRegiaoId) : null,
+                })
+                .eq('id', cidadeEdicao.id)
+
+            if (error) {
+                mostrarErroToast(`Erro ao editar cidade: ${error.message}`)
+                return
+            }
+
+            await carregarBase()
+            setCidadeEdicao(null)
+            setCidadeEdicaoNome('')
+            setCidadeEdicaoRegiaoId('')
+        } catch (error) {
+            mostrarErroToast(`Falha ao editar cidade: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const preencherProcedimentosCidadeAtual = async () => {
+        if (!cidadeId) {
+            mostrarErroToast('Selecione uma cidade para preencher os procedimentos.')
+            return
+        }
+
+        const codigos = [...new Set(
+            codigosInicializacaoCidade
+                .split(',')
+                .map((item) => item.trim().toUpperCase())
+                .filter(Boolean)
+        )]
+
+        if (codigos.length === 0) {
+            mostrarErroToast('Informe os códigos dos procedimentos separados por vírgula.')
+            return
+        }
+
+        const porteIds = [obterPorteIdPorLetra('P'), obterPorteIdPorLetra('M'), obterPorteIdPorLetra('G')].filter(Boolean)
+        if (porteIds.length === 0) {
+            mostrarErroToast('Portes P/M/G não encontrados.')
+            return
+        }
+
+        setLoading(true)
+        try {
+            const { data: procedimentosValidos, error: errProcedimentos } = await supabase
+                .from('procedimentos')
+                .select('codigo')
+                .in('codigo', codigos)
+
+            if (errProcedimentos) {
+                mostrarErroToast(`Erro ao validar procedimentos: ${errProcedimentos.message}`)
+                return
+            }
+
+            const codigosValidos = (procedimentosValidos || []).map((item) => String(item.codigo).toUpperCase())
+            if (codigosValidos.length === 0) {
+                mostrarErroToast('Nenhum código informado foi encontrado na base.')
+                return
+            }
+
+            const payload = codigosValidos.flatMap((codigo) =>
+                porteIds.map((porteId) => ({
+                    cidade_id: Number(cidadeId),
+                    procedimento_id: codigo,
+                    porte_id: Number(porteId),
+                    valor: 0,
+                }))
+            )
+
+            const { error: errInsert } = await supabase
+                .from('repasses')
+                .upsert(payload, { onConflict: 'procedimento_id,cidade_id,porte_id' })
+
+            if (errInsert) {
+                mostrarErroToast(`Erro ao inserir procedimentos em massa: ${errInsert.message}`)
+                return
+            }
+
+            setCodigosInicializacaoCidade('')
+            await Promise.all([carregarBase(), buscarTabelaCidade(), carregarResumoRepasses()])
+        } catch (error) {
+            mostrarErroToast(`Falha ao inserir procedimentos em massa: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const duplicarCidadeSelecionada = async () => {
+        if (!cidadeDuplicarOrigem) return
+        const nomeCidade = novoNomeCidadeDuplicada.trim()
+        if (!nomeCidade) {
+            mostrarErroToast('Informe o nome da nova cidade para duplicação.')
+            return
+        }
+
+        setLoading(true)
+        try {
+            const { data: cidadeNova, error: errCidadeNova } = await supabase
+                .from('cidades')
+                .insert({
+                    nome: nomeCidade,
+                    regiao_id: cidadeDuplicarOrigem.regiaoId || null,
+                })
+                .select('id')
+                .single()
+
+            if (errCidadeNova) {
+                const msg = String(errCidadeNova.message || '')
+                if (msg.toLowerCase().includes('row-level security')) {
+                    mostrarErroToast('Sem permissão para criar cidades (RLS). Peça liberação da policy INSERT em cidades.')
+                } else {
+                    mostrarErroToast(`Erro ao duplicar cidade: ${errCidadeNova.message}`)
+                }
+                return
+            }
+
+            const { data: repassesOrigem, error: errRepassesOrigem } = await supabase
+                .from('repasses')
+                .select('procedimento_id, porte_id, valor')
+                .eq('cidade_id', cidadeDuplicarOrigem.id)
+
+            if (errRepassesOrigem) {
+                mostrarErroToast(`Cidade criada, mas houve erro ao copiar tabela: ${errRepassesOrigem.message}`)
+                return
+            }
+
+            const payload = (repassesOrigem || []).map((item) => ({
+                cidade_id: cidadeNova.id,
+                procedimento_id: item.procedimento_id,
+                porte_id: item.porte_id,
+                valor: item.valor,
+            }))
+
+            if (payload.length > 0) {
+                const { error: errInsert } = await supabase
+                    .from('repasses')
+                    .upsert(payload, { onConflict: 'procedimento_id,cidade_id,porte_id' })
+                if (errInsert) {
+                    mostrarErroToast(`Cidade criada, mas houve erro ao copiar repasses: ${errInsert.message}`)
+                    return
+                }
+            }
+
+            await carregarBase()
+            setCidadeId(String(cidadeNova.id))
+            setCidadeDuplicarOrigem(null)
+            setNovoNomeCidadeDuplicada('')
+            setMostrarGerenciarModal(false)
+        } catch (error) {
+            mostrarErroToast(`Falha ao duplicar tabela: ${error.message}`)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    useEffect(() => {
+        carregarBase()
+    }, [carregarBase])
+
+    useEffect(() => {
+        carregarResumoRepasses()
+    }, [carregarResumoRepasses])
+
+    useEffect(() => {
+        if (!mostrarGerenciarModal) return
+        carregarResumoRepasses()
+    }, [mostrarGerenciarModal, carregarResumoRepasses])
+
+    useEffect(() => {
+        buscarTabelaCidade()
+    }, [buscarTabelaCidade])
+
+    useEffect(() => {
+        if (!erroDetalhe) return
+        const timer = setTimeout(() => setErroDetalhe(''), 15000)
+        return () => clearTimeout(timer)
+    }, [erroDetalhe])
+
+    useEffect(() => {
+        const onScroll = () => {
+            setHeaderCompacto(window.scrollY > 40)
+        }
+        onScroll()
+        window.addEventListener('scroll', onScroll)
+        return () => window.removeEventListener('scroll', onScroll)
+    }, [])
+
+    return (
+        <div className='supertabelacidades'>
+            <h1>Supertabela</h1>
+            <hr />
+            <header className={`supertabelacidades_header ${headerCompacto ? 'is-compact' : ''}`}>
+                <h2>Filtros</h2>
+                <div className='supertabelacidades_filters'>
+                    <div className='supertabelacidades_filter_item supertabelacidades_filter_busca'>
+                        <p>Busca</p>
+                        <input
+                            type='text'
+                            className='supertabelacidades_input'
+                            placeholder='Código, procedimento ou categoria'
+                            value={termoBusca}
+                            onChange={(event) => setTermoBusca(event.target.value)}
+                        />
+                    </div>
+
+                    <div className='supertabelacidades_filter_item'>
+                        <p>Cidade</p>
+                        <select
+                            className='supertabelacidades_select'
+                            value={cidadeId}
+                            onChange={(event) => setCidadeId(event.target.value)}
+                        >
+                            {cidades.map((cidade) => (
+                                <option key={cidade.id} value={cidade.id}>
+                                    {cidade.nome}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <button
+                        type='button'
+                        className='supertabelacidades_action_btn'
+                        onClick={() => {
+                            setMostrarGerenciarModal(true)
+                            setCidadeDuplicarOrigem(null)
+                            setNovoNomeCidadeDuplicada('')
+                        }}
+                    >
+                        <span className='ico'>⚙️</span> Gerenciar tabelas
+                    </button>
+
+                    <label className='supertabelacidades_edit_wrap'>
+                        <input
+                            type='checkbox'
+                            checked={edicaoAtiva}
+                            onChange={(event) => setEdicaoAtiva(event.target.checked)}
+                        />
+                        <span>Ativar edição</span>
+                    </label>
+
+                    <label className='supertabelacidades_edit_wrap'>
+                        <input
+                            type='checkbox'
+                            checked={adicaoMassaAtiva}
+                            onChange={(event) => setAdicaoMassaAtiva(event.target.checked)}
+                        />
+                        <span>Adição em massa</span>
+                    </label>
+                </div>
+
+                {adicaoMassaAtiva && (
+                    <div className='cidade_vazia_wrap'>
+                        <p>Adicionar procedimentos em massa na cidade selecionada</p>
+                        <div className='cidade_vazia_form'>
+                            <label htmlFor='codigos-adicao-massa'>
+                                IDs de procedimentos separados por vírgula
+                            </label>
+                            <textarea
+                                id='codigos-adicao-massa'
+                                rows={3}
+                                value={codigosInicializacaoCidade}
+                                onChange={(event) => setCodigosInicializacaoCidade(event.target.value)}
+                                placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
+                            />
+                            <button
+                                type='button'
+                                className='cidade_vazia_btn'
+                                onClick={preencherProcedimentosCidadeAtual}
+                            >
+                                Inserir procedimentos em massa
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </header>
+
+            {erroDetalhe && (
+                <div className='supertabelacidades_alert' role='alert' aria-live='assertive'>
+                    <div className='supertabelacidades_alert_text'>
+                        <strong>Aviso</strong>
+                        <span>{erroDetalhe}</span>
+                    </div>
+                    <button
+                        type='button'
+                        className='supertabelacidades_alert_close'
+                        onClick={() => setErroDetalhe('')}
+                        aria-label='Fechar aviso'
+                    >
+                        x
+                    </button>
+                </div>
+            )}
+
+            {confirmacaoExclusao && (
+                <div className='supertabelacidades_confirm_toast' role='alertdialog' aria-live='assertive'>
+                    <div className='supertabelacidades_confirm_text'>
+                        <strong>Confirmar exclusão</strong>
+                        <span>{confirmacaoExclusao.mensagem}</span>
+                    </div>
+                    <div className='supertabelacidades_confirm_actions'>
+                        <button
+                            type='button'
+                            className='supertabelacidades_confirm_btn danger'
+                            onClick={async () => {
+                                const acao = confirmacaoExclusao.onConfirmar
+                                setConfirmacaoExclusao(null)
+                                await acao()
+                            }}
+                        >
+                            Confirmar
+                        </button>
+                        <button
+                            type='button'
+                            className='supertabelacidades_confirm_btn'
+                            onClick={() => setConfirmacaoExclusao(null)}
+                        >
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {mostrarGerenciarModal && (
+                <div className='manager_modal_overlay' onClick={() => setMostrarGerenciarModal(false)}>
+                    <div className='manager_modal' onClick={(event) => event.stopPropagation()}>
+                        <div className='manager_modal_header'>
+                            <h3>Gerenciar tabelas</h3>
+                            <div className='manager_header_actions'>
+                                <button
+                                    type='button'
+                                    className='manager_add_city_btn'
+                                    onClick={abrirAdicionarCidade}
+                                    title='Adicionar nova cidade'
+                                >
+                                    ＋ Nova cidade
+                                </button>
+                                <button
+                                    type='button'
+                                    className='manager_close_btn'
+                                    onClick={() => setMostrarGerenciarModal(false)}
+                                    title='Fechar'
+                                >
+                                    x
+                                </button>
+                            </div>
+                        </div>
+
+                        {mostrarAdicionarCidade && (
+                            <div className='manager_add_bar'>
+                                <span>Adicionar nova cidade</span>
+                                <input
+                                    type='text'
+                                    value={novaCidadeNome}
+                                    onChange={(event) => setNovaCidadeNome(event.target.value)}
+                                    placeholder='Nome da cidade'
+                                />
+                                <select
+                                    value={novaCidadeRegiaoId}
+                                    onChange={(event) => setNovaCidadeRegiaoId(event.target.value)}
+                                >
+                                    <option value=''>Sem região</option>
+                                    {regioes.map((regiao) => (
+                                        <option key={`nova-regiao-${regiao.id}`} value={regiao.id}>
+                                            {regiao.id} - {regiao.nome}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button type='button' className='manager_action_btn save' onClick={salvarNovaCidade}>
+                                    Salvar
+                                </button>
+                                <button
+                                    type='button'
+                                    className='manager_action_btn'
+                                    onClick={() => {
+                                        setMostrarAdicionarCidade(false)
+                                        setNovaCidadeNome('')
+                                        setNovaCidadeRegiaoId('')
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
+
+                        {cidadeEdicao && (
+                            <div className='manager_edit_bar'>
+                                <span>Editar cidade <strong>{cidadeEdicao.nome}</strong></span>
+                                <input
+                                    type='text'
+                                    value={cidadeEdicaoNome}
+                                    onChange={(event) => setCidadeEdicaoNome(event.target.value)}
+                                    placeholder='Nome da cidade'
+                                />
+                                <select
+                                    value={cidadeEdicaoRegiaoId}
+                                    onChange={(event) => setCidadeEdicaoRegiaoId(event.target.value)}
+                                >
+                                    <option value=''>Sem região</option>
+                                    {regioes.map((regiao) => (
+                                        <option key={`edit-regiao-${regiao.id}`} value={regiao.id}>
+                                            {regiao.id} - {regiao.nome}
+                                        </option>
+                                    ))}
+                                </select>
+                                <button type='button' className='manager_action_btn save' onClick={salvarEdicaoCidade}>
+                                    Salvar
+                                </button>
+                                <button
+                                    type='button'
+                                    className='manager_action_btn'
+                                    onClick={() => {
+                                        setCidadeEdicao(null)
+                                        setCidadeEdicaoNome('')
+                                        setCidadeEdicaoRegiaoId('')
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
+
+                        {cidadeDuplicarOrigem && (
+                            <div className='manager_duplicate_bar'>
+                                <span>Duplicar tabela de <strong>{cidadeDuplicarOrigem.nome}</strong> para:</span>
+                                <input
+                                    type='text'
+                                    value={novoNomeCidadeDuplicada}
+                                    onChange={(event) => setNovoNomeCidadeDuplicada(event.target.value)}
+                                    placeholder='Nome da nova cidade'
+                                />
+                                <button type='button' className='manager_action_btn save' onClick={duplicarCidadeSelecionada}>
+                                    Confirmar
+                                </button>
+                                <button
+                                    type='button'
+                                    className='manager_action_btn'
+                                    onClick={() => {
+                                        setCidadeDuplicarOrigem(null)
+                                        setNovoNomeCidadeDuplicada('')
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
+                        )}
+
+                        <div className='manager_table_wrap'>
+                            <table className='manager_table'>
+                                <thead>
+                                    <tr>
+                                        <th onClick={() => ordenarGerenciador('regiaoId')}>
+                                            Código da Região{indicadorOrdenacaoGerenciador('regiaoId')}
+                                        </th>
+                                        <th onClick={() => ordenarGerenciador('nome')}>
+                                            Cidade Nome{indicadorOrdenacaoGerenciador('nome')}
+                                        </th>
+                                        <th onClick={() => ordenarGerenciador('procedimentosAtivos')}>
+                                            Procedimentos ativos{indicadorOrdenacaoGerenciador('procedimentosAtivos')}
+                                        </th>
+                                        <th>Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {cidadesGerenciaveisOrdenadas.map((cidade) => (
+                                        <tr key={`manager-${cidade.id}`}>
+                                            <td>{cidade.regiaoId ?? '-'}</td>
+                                            <td>{cidade.nome}</td>
+                                            <td>{cidade.procedimentosAtivos}</td>
+                                            <td>
+                                                <div className='manager_actions'>
+                                                    <button
+                                                        type='button'
+                                                        className='manager_icon_btn'
+                                                        onClick={() => acessarCidadeNoGerenciador(cidade.id)}
+                                                        title='Acessar tabela'
+                                                    >
+                                                        👁️
+                                                    </button>
+                                                    <button
+                                                        type='button'
+                                                        className='manager_icon_btn'
+                                                        onClick={() => iniciarEdicaoCidade(cidade)}
+                                                        title='Editar cidade'
+                                                    >
+                                                        ✏️
+                                                    </button>
+                                                    <button
+                                                        type='button'
+                                                        className='manager_icon_btn'
+                                                        onClick={() => iniciarDuplicacaoCidade(cidade)}
+                                                        title='Duplicar tabela'
+                                                    >
+                                                        📄
+                                                    </button>
+                                                    <button
+                                                        type='button'
+                                                        className='manager_icon_btn danger'
+                                                        onClick={(event) =>
+                                                            excluirCidadeNoGerenciador(cidade, {
+                                                                ignorarConfirmacao: event.shiftKey,
+                                                            })
+                                                        }
+                                                        title='Excluir tabela'
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <div className='supertabelacidades_table_container'>
+                {loading ? (
+                    <p>Carregando...</p>
+                ) : secoesPorCategoria.length === 0 ? (
+                    <div className='cidade_vazia_wrap'>
+                        <p>Nenhum procedimento encontrado para a cidade selecionada.</p>
+                        <div className='cidade_vazia_form'>
+                            <label htmlFor='codigos-cidade-vazia'>
+                                Preencha os IDs de procedimentos (separados por vírgula)
+                            </label>
+                            <textarea
+                                id='codigos-cidade-vazia'
+                                rows={3}
+                                value={codigosInicializacaoCidade}
+                                onChange={(event) => setCodigosInicializacaoCidade(event.target.value)}
+                                placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
+                            />
+                            <button
+                                type='button'
+                                className='cidade_vazia_btn'
+                                onClick={preencherProcedimentosCidadeAtual}
+                            >
+                                Criar lista de procedimentos para a cidade
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    secoesPorCategoria.map((secao) => (
+                        <section key={secao.categoriaId} className='categoria_secao'>
+                            <div className='categoria_header'>
+                                <h2 className='categoria_titulo'>{secao.categoriaNome}</h2>
+                                <span className='categoria_contagem'>
+                                    {secao.linhas.length}/{totalProcedimentosPorCategoria.get(Number(secao.categoriaId)) || 0}
+                                </span>
+                            </div>
+                            <table className='table_main'>
+                                <colgroup>
+                                    <col style={{ width: '14%' }} />
+                                    <col style={{ width: '42%' }} />
+                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '11%' }} />
+                                    <col style={{ width: '11%' }} />
+                                </colgroup>
+                                <thead>
+                                    <tr>
+                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'codigo')}>
+                                            Código{obterIndicadorOrdenacao(secao.categoriaId, 'codigo')}
+                                        </th>
+                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'procedimento')}>
+                                            Procedimento{obterIndicadorOrdenacao(secao.categoriaId, 'procedimento')}
+                                        </th>
+                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteP')}>
+                                            Porte P{obterIndicadorOrdenacao(secao.categoriaId, 'porteP')}
+                                        </th>
+                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteM')}>
+                                            Porte M{obterIndicadorOrdenacao(secao.categoriaId, 'porteM')}
+                                        </th>
+                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteG')}>
+                                            Porte G{obterIndicadorOrdenacao(secao.categoriaId, 'porteG')}
+                                        </th>
+                                        <th className='table_header'>Excluir</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {secao.linhas.map((linha, linhaIndex) => (
+                                        <tr key={`${secao.categoriaId}-${linha.codigo}`}>
+                                            <td className='table_text_left'>{linha.codigo}</td>
+                                            <td className='table_text_left'>{linha.procedimento}</td>
+                                            <td>
+                                                {edicaoAtiva ? (
+                                                    <input
+                                                        className='table_cell_input'
+                                                        type='number'
+                                                        step='0.01'
+                                                        value={linha.porteP}
+                                                        onChange={(event) => atualizarValorLocal(linha.codigo, 'porteP', event.target.value)}
+                                                        onBlur={() => salvarRepasse(linha, 'porteP')}
+                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteP')}
+                                                    />
+                                                ) : (
+                                                    Number(linha.porteP || 0).toFixed(2)
+                                                )}
+                                            </td>
+                                            <td>
+                                                {edicaoAtiva ? (
+                                                    <input
+                                                        className='table_cell_input'
+                                                        type='number'
+                                                        step='0.01'
+                                                        value={linha.porteM}
+                                                        onChange={(event) => atualizarValorLocal(linha.codigo, 'porteM', event.target.value)}
+                                                        onBlur={() => salvarRepasse(linha, 'porteM')}
+                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteM')}
+                                                    />
+                                                ) : (
+                                                    Number(linha.porteM || 0).toFixed(2)
+                                                )}
+                                            </td>
+                                            <td>
+                                                {edicaoAtiva ? (
+                                                    <input
+                                                        className='table_cell_input'
+                                                        type='number'
+                                                        step='0.01'
+                                                        value={linha.porteG}
+                                                        onChange={(event) => atualizarValorLocal(linha.codigo, 'porteG', event.target.value)}
+                                                        onBlur={() => salvarRepasse(linha, 'porteG')}
+                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteG')}
+                                                    />
+                                                ) : (
+                                                    Number(linha.porteG || 0).toFixed(2)
+                                                )}
+                                            </td>
+                                            <td>
+                                                <button
+                                                    type='button'
+                                                    className='row_delete_btn'
+                                                    onClick={(event) =>
+                                                        excluirProcedimento(linha, {
+                                                            ignorarConfirmacao: event.shiftKey,
+                                                        })
+                                                    }
+                                                    title='Excluir procedimento'
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    <tr className='row_add_line'>
+                                        <td colSpan={6}>
+                                            {categoriaEmInclusao === secao.categoriaId ? (
+                                                <div className='row_add_inline'>
+                                                    <div className='row_add_suggest_wrap'>
+                                                        <input
+                                                            type='text'
+                                                            className='row_add_input'
+                                                            placeholder='Digite nome/código do procedimento'
+                                                            value={textoNovoProcedimento}
+                                                            onChange={(event) => {
+                                                                setTextoNovoProcedimento(event.target.value)
+                                                                setNovoProcedimentoSelecionadoCodigo('')
+                                                            }}
+                                                        />
+                                                        <div className='row_add_suggest_list'>
+                                                            {sugestoesFiltradasInclusao.length === 0 ? (
+                                                                <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
+                                                            ) : (
+                                                                sugestoesFiltradasInclusao.map((item) => (
+                                                                    <button
+                                                                        key={`${secao.categoriaId}-${item.codigo}`}
+                                                                        type='button'
+                                                                        className={`row_add_suggest_item ${normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) === normalizarTextoBusca(item.codigo) ? 'is-active' : ''
+                                                                            }`}
+                                                                        onClick={() => {
+                                                                            setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
+                                                                            setNovoProcedimentoSelecionadoCodigo(item.codigo)
+                                                                        }}
+                                                                    >
+                                                                        <span>{item.nome}</span>
+                                                                        <small>{item.codigo}</small>
+                                                                    </button>
+                                                                ))
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        type='button'
+                                                        className='row_add_btn'
+                                                        onClick={() => confirmarNovoProcedimentoCategoria(secao.categoriaId)}
+                                                    >
+                                                        Salvar
+                                                    </button>
+                                                    <button
+                                                        type='button'
+                                                        className='row_add_cancel_btn'
+                                                        onClick={() => {
+                                                            setCategoriaEmInclusao(null)
+                                                            setTextoNovoProcedimento('')
+                                                            setNovoProcedimentoSelecionadoCodigo('')
+                                                        }}
+                                                    >
+                                                        Cancelar
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button
+                                                    type='button'
+                                                    className='row_add_btn'
+                                                    onClick={() => {
+                                                        setCategoriaEmInclusao(secao.categoriaId)
+                                                        setTextoNovoProcedimento('')
+                                                        setNovoProcedimentoSelecionadoCodigo('')
+                                                    }}
+                                                >
+                                                    ＋ Adicionar procedimento nesta categoria
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </section>
+                    ))
+                )}
+            </div>
+        </div>
+    )
+}
+
+export default Supertabelacidades

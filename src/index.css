@@ -8,6 +8,10 @@
     --cinza-medio: #7C736A;
     --cinza-claro: #EDE9E4;
     --cinza-escuro: #606E7E;
+    --bg-page: #ffffff;
+    --bg-surface: #ffffff;
+    --text-main: var(--cinza-escuro);
+    --border-soft: #d8e6ef;
 }
 
 * {
@@ -19,6 +23,248 @@
 body {
     line-height: 1.6;
     font-family: var(--fonte-principal);
-    color: var(--cinza-escuro);
-    background-color: white;
+    color: var(--text-main);
+    background-color: var(--bg-page);
+}
+
+body.dark-mode {
+    --azul-escuro: #d8e8f8;
+    --azul-claro: #20374f;
+    --azul-destaque: #7fc0f0;
+    --cinza-medio: #b6c5d3;
+    --cinza-claro: #38526c;
+    --cinza-escuro: #e7f0f8;
+    --bg-page: #0b1420;
+    --bg-surface: #132335;
+    --text-main: #eaf2fa;
+    --border-soft: #3a5775;
+}
+
+body.dark-mode {
+    color: var(--text-main);
+    background-color: var(--bg-page);
+}
+
+body.dark-mode .categoria_secao,
+body.dark-mode .manager_modal,
+body.dark-mode .supertabelacidades_new_form,
+body.dark-mode .supertabelacidades_filters,
+body.dark-mode .table_main tbody tr:nth-child(even),
+body.dark-mode .row_add_line td {
+    background: var(--bg-surface);
+}
+
+body.dark-mode .table_main td,
+body.dark-mode .table_main th,
+body.dark-mode .manager_table th,
+body.dark-mode .manager_table td,
+body.dark-mode .categoria_secao,
+body.dark-mode .supertabelacidades_filters,
+body.dark-mode .manager_modal {
+    border-color: var(--border-soft);
+}
+
+body.dark-mode input,
+body.dark-mode select,
+body.dark-mode textarea,
+body.dark-mode .table_cell_input {
+    background: #0f1e2e;
+    color: #dce7f2;
+    border-color: #355372;
+}
+
+body.dark-mode .table_main tbody tr:hover,
+body.dark-mode .manager_icon_btn:hover,
+body.dark-mode .row_add_btn:hover {
+    background: #17314a;
+}
+
+body.dark-mode .row_add_btn {
+    background: #0d2336;
+    color: #778088;
+}
+
+body.dark-mode .row_add_btn:hover {
+    color: #cee7ff;
+}
+
+/* Ajuste de contraste para sidebar, filtros e cabeçalhos de tabela */
+body.dark-mode .sidebar {
+    background: #11263a;
+    border-right: 1px solid #2f4962;
+}
+
+body.dark-mode .sidebar_group_btn,
+body.dark-mode .sidebar_submenu a,
+body.dark-mode .sidebar_submenu_action {
+    color: #eaf3fb;
+}
+
+body.dark-mode .sidebar_group_btn:hover,
+body.dark-mode .sidebar_submenu a:hover {
+    background: rgba(127, 192, 240, 0.14);
+    color: #f4f9ff;
+}
+
+body.dark-mode .sidebar_footer {
+    border-top-color: #34526d;
+}
+
+body.dark-mode .supertabelamain_filters,
+body.dark-mode .supertabelacidades_filters {
+    background: #182e44;
+    border-color: #3b5a77;
+    box-shadow: 0 6px 18px rgba(3, 10, 18, 0.35);
+}
+
+body.dark-mode .supertabelamain_filters_checkbox_wrap,
+body.dark-mode .supertabelacidades_edit_wrap,
+body.dark-mode .supertabelacidades_action_btn {
+    background: #274158;
+    border-color: #557593;
+    color: #edf5fd;
+}
+
+body.dark-mode .supertabelamain_filters_checkbox_wrap span,
+body.dark-mode .supertabelacidades_edit_wrap span {
+    color: #edf5fd;
+}
+
+body.dark-mode .supertabelamain_filters_checkbox_wrap input,
+body.dark-mode .supertabelacidades_edit_wrap input {
+    accent-color: #7fc0f0;
+}
+
+body.dark-mode .supertabelamain_header.is-compact,
+body.dark-mode .supertabelacidades_header.is-compact {
+    background: rgba(14, 27, 42, 0.75);
+}
+
+body.dark-mode .table_header,
+body.dark-mode .manager_table th {
+    background: #1f3951;
+    color: #eaf2fa;
+    border-bottom-color: #4b6a86;
+}
+
+body.dark-mode .table_main th {
+    border-color: #4b6a86;
+}
+
+body.dark-mode .manager_modal_header,
+body.dark-mode .manager_add_bar,
+body.dark-mode .manager_edit_bar,
+body.dark-mode .manager_duplicate_bar {
+    background: #1a3248;
+    border-bottom-color: #486784;
+}
+
+body.dark-mode .manager_modal_header h3 {
+    color: #eef5fc;
+}
+
+body.dark-mode .manager_add_city_btn,
+body.dark-mode .manager_close_btn,
+body.dark-mode .manager_action_btn {
+    background: #27435d;
+    color: #e6f1fb;
+    border-color: #557696;
+}
+
+body.dark-mode .manager_action_btn.save {
+    background: #2d5678;
+    color: #f2f8ff;
+    border-color: #6f99bd;
+}
+
+body.dark-mode .cidade_vazia_wrap {
+    background: #182e44;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .cidade_vazia_wrap p,
+body.dark-mode .cidade_vazia_form label {
+    color: #e6f0fa;
+}
+
+body.dark-mode .cidade_vazia_form textarea {
+    background: #0f1e2e;
+    color: #e6f0fa;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .cidade_vazia_btn {
+    background: #274862;
+    color: #e6f0fa;
+    border-color: #5b82a4;
+}
+
+body.dark-mode .cidade_vazia_btn:hover {
+    background: #2f5678;
+}
+
+body.dark-mode .header {
+    background: linear-gradient(to bottom, rgba(10, 20, 32, 0.92), rgba(10, 20, 32, 0.4));
+}
+
+body.dark-mode .header_nav {
+    background: #14283b;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+body.dark-mode .header_nav_link {
+    color: #e4edf7;
+}
+
+body.dark-mode .logout_button,
+body.dark-mode .header_darkmode_button {
+    background: #213b54;
+    color: #e9f3fc;
+    border-color: #4a6987;
+}
+
+body.dark-mode .home_cards_container {
+    border-color: #3f5f7c;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    background: #102234;
+}
+
+body.dark-mode .home {
+    background: transparent;
+    color: #e5eef8;
+}
+
+body.dark-mode .home_card {
+    background: #163047;
+    border-color: #40607d;
+}
+
+body.dark-mode .home_card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.28);
+    transform: translateY(-1px);
+}
+
+body.dark-mode .card_nome,
+body.dark-mode .card_texto {
+    color: #e5eef8;
+}
+
+body.dark-mode .card_link {
+    background: #274862;
+    color: #d8ecff;
+}
+
+body.dark-mode .card_link:hover {
+    transform: scale(1.03);
+    font-weight: 500;
+}
+
+body.dark-mode footer {
+    background: linear-gradient(to top, #0e1b2b, #132437);
+    border-top-color: #304a63;
+}
+
+body.dark-mode footer a,
+body.dark-mode .copyright {
+    color: #dbe7f3;
 }

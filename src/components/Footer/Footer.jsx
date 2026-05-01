@@ -1,18 +1,32 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import "./Footer.css"
 import logoNav from '../../assets/Emerdog-logo-nav.svg'
+import logoBranco from '../../assets/logo_branco.png'
 import youtubeIcon from '../../assets/youtube-ico.svg'
 import whatsappIcon from '../../assets/whatsapp-ico.svg'
 import instagramIcon from '../../assets/instagram-ico.svg'
 import tiktokIcon from '../../assets/tiktok-ico.svg'
 import cloudIcon from '../../assets/cloud-ico.svg'
 const Footer = () => {
+    const [darkModeAtivo, setDarkModeAtivo] = useState(() => {
+        if (typeof window === 'undefined') return false
+        return window.localStorage.getItem('sfsc-dark-mode') === '1'
+    })
+
+    useEffect(() => {
+        const observer = new MutationObserver(() => {
+            setDarkModeAtivo(document.body.classList.contains('dark-mode'))
+        })
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] })
+        return () => observer.disconnect()
+    }, [])
+
     return (
         <footer>
             <div className='footer_container'>
                 <div className='footer_container_left'>
                     <div className='footer_container_left_logo'>
-                        <img src={logoNav} alt="A" className='logo logo_footer' />
+                        <img src={darkModeAtivo ? logoBranco : logoNav} alt="Emerdog" className='logo logo_footer' />
                         <p>Sistema Facilitador do Setor de Credenciamentos</p>
                     </div>
                     <a href="https://www.youtube.com/@Emerdog"><img src={youtubeIcon} alt="Youtube" className='footer_icon' /></a>

@@ -10,6 +10,8 @@
     overflow-x: hidden;
     overflow-y: auto;
     padding-top: 20px;
+    display: flex;
+    flex-direction: column;
 }
 
 .sidebar_logo_wrap {
@@ -36,10 +38,37 @@
 }
 
 .toggle_btn {
-    position: fixed;
-    bottom: 20px;
-    left: 9px;
-    z-index: 1000;
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-radius: 9px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 180ms ease, transform 180ms ease, border-color 180ms ease;
+    margin-bottom: 8px;
+}
+
+.toggle_btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.toggle_icon {
+    width: 14px;
+    height: 14px;
+    object-fit: contain;
+}
+
+.toggle_text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 /* container do menu */
@@ -48,6 +77,43 @@
     flex-direction: column;
     gap: 4px;
     padding: 0 10px 20px 10px;
+}
+
+.sidebar_footer {
+    margin-top: auto;
+    padding: 10px 10px 14px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.sidebar_darkmode_btn {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-radius: 9px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 180ms ease, transform 180ms ease, border-color 180ms ease;
+}
+
+.sidebar_darkmode_btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.sidebar_darkmode_icon {
+    font-size: 1rem;
+}
+
+.sidebar_darkmode_text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .sidebar_group {
@@ -175,4 +241,12 @@
 .sidebar.closed .sidebar_group_btn span:last-child {
     opacity: 0;
     transform: translateX(-6px);
+}
+
+.sidebar.closed .sidebar_darkmode_text {
+    display: none;
+}
+
+.sidebar.closed .toggle_text {
+    display: none;
 }

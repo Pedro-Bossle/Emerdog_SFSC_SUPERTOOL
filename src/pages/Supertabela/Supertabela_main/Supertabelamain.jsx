@@ -135,35 +135,45 @@ const Supertabelamain = () => {
                 return
             }
 
-            const regiaoId = regiaoSelecionadaId
-
-            const [planosCidadeResp, repassesPorRegiaoResp] = await Promise.all([
+            const [planosCidadeResp, repassesPorCidadeResp] = await Promise.all([
                 supabase
                     .from('planos_cidade')
                     .select('id, procedimento_cod, diferenca')
-                    .eq('regiao_id', regiaoId)
+                    .eq('cidade_id', cidadeId)
                     .eq('plano_id', planoId),
                 supabase
                     .from('repasses')
                     .select('id, procedimento_id, porte_id, valor')
-                    .eq('regiao_id', regiaoId),
+                    .eq('cidade_id', cidadeId),
             ])
 
-            const planosCidade = planosCidadeResp.data
-            const errPlanosCidade = planosCidadeResp.error
+            let planosCidade = planosCidadeResp.data
+            let errPlanosCidade = planosCidadeResp.error
 
-            let repasses = repassesPorRegiaoResp.data
-            let errRepasses = repassesPorRegiaoResp.error
+            let repasses = repassesPorCidadeResp.data
+            let errRepasses = repassesPorCidadeResp.error
 
-            if (errRepasses) {
-                // Compatibilidade com bases antigas onde repasses ainda usam cidade_id.
-                const fallback = await supabase
+            if (errPlanosCidade && regiaoSelecionadaId) {
+                // Compatibilidade com bases antigas onde planos_cidade ainda usa regiao_id.
+                const fallbackPlanos = await supabase
+                    .from('planos_cidade')
+                    .select('id, procedimento_cod, diferenca')
+                    .eq('regiao_id', regiaoSelecionadaId)
+                    .eq('plano_id', planoId)
+
+                planosCidade = fallbackPlanos.data
+                errPlanosCidade = fallbackPlanos.error
+            }
+
+            if (errRepasses && regiaoSelecionadaId) {
+                // Compatibilidade com bases antigas onde repasses ainda usam regiao_id.
+                const fallbackRepasses = await supabase
                     .from('repasses')
                     .select('id, procedimento_id, porte_id, valor')
-                    .eq('cidade_id', cidadeId)
+                    .eq('regiao_id', regiaoSelecionadaId)
 
-                repasses = fallback.data
-                errRepasses = fallback.error
+                repasses = fallbackRepasses.data
+                errRepasses = fallbackRepasses.error
             }
 
             if (errPlanosCidade || errRepasses) {
@@ -258,9 +268,17 @@ const Supertabelamain = () => {
             const codigo = String(linha.codigo || '').toLowerCase()
             const procedimento = String(linha.procedimento || '').toLowerCase()
             const parceiro = String(linha.parceiro || '').toLowerCase()
-            return codigo.includes(termo) || procedimento.includes(termo) || parceiro.includes(termo)
+            const categoriaNome = String(
+                categorias.find((categoria) => Number(categoria.id) === Number(linha.categoriaId))?.nome || ''
+            ).toLowerCase()
+            return (
+                codigo.includes(termo) ||
+                procedimento.includes(termo) ||
+                parceiro.includes(termo) ||
+                categoriaNome.includes(termo)
+            )
         })
-    }, [linhas, termoBusca])
+    }, [linhas, termoBusca, categorias])
 
     /**
      * Retorna um valor textual para input de edição do repasse.
@@ -308,8 +326,8 @@ const Supertabelamain = () => {
      * Persiste no banco o valor de repasse para cidade/porte/procedimento e atualiza estado local.
      */
     const salvarRepasseValor = async (linha, campo, valorNumerico) => {
-        if (!regiaoSelecionadaId) {
-            setErroDetalhe('Região da cidade selecionada não identificada para salvar repasse.')
+        if (!cidadeId) {
+            setErroDetalhe('Cidade selecionada não identificada para salvar repasse.')
             return false
         }
 
@@ -334,45 +352,45 @@ const Supertabelamain = () => {
                 .eq('id', meta.repasseId)
             erroPersistencia = error
         } else {
-            const tentativaPorRegiao = await supabase
+            const tentativaPorCidade = await supabase
                 .from('repasses')
                 .upsert(
                     {
                         procedimento_id: linha.codigo,
-                        regiao_id: Number(regiaoSelecionadaId),
+                        cidade_id: Number(cidadeId),
                         porte_id: Number(meta.porteId),
                         valor: valorNumerico,
                     },
                     {
-                        onConflict: 'procedimento_id,regiao_id,porte_id',
+                        onConflict: 'procedimento_id,cidade_id,porte_id',
                     }
                 )
                 .select('id')
                 .single()
 
-            let data = tentativaPorRegiao.data
-            erroPersistencia = tentativaPorRegiao.error
+            let data = tentativaPorCidade.data
+            erroPersistencia = tentativaPorCidade.error
 
-            if (erroPersistencia) {
-                // Compatibilidade com bases antigas onde repasses ainda usam cidade_id.
-                const tentativaPorCidade = await supabase
+            if (erroPersistencia && regiaoSelecionadaId) {
+                // Compatibilidade com bases antigas onde repasses ainda usam regiao_id.
+                const tentativaPorRegiao = await supabase
                     .from('repasses')
                     .upsert(
                         {
                             procedimento_id: linha.codigo,
-                            cidade_id: Number(cidadeId),
+                            regiao_id: Number(regiaoSelecionadaId),
                             porte_id: Number(meta.porteId),
                             valor: valorNumerico,
                         },
                         {
-                            onConflict: 'procedimento_id,cidade_id,porte_id',
+                            onConflict: 'procedimento_id,regiao_id,porte_id',
                         }
                     )
                     .select('id')
                     .single()
 
-                data = tentativaPorCidade.data
-                erroPersistencia = tentativaPorCidade.error
+                data = tentativaPorRegiao.data
+                erroPersistencia = tentativaPorRegiao.error
             }
 
             novoRepasseId = data?.id || null
@@ -440,15 +458,30 @@ const Supertabelamain = () => {
      * Resolve o ID de planos_cidade para o procedimento/plano/região atuais quando não vier no estado.
      */
     const resolverPlanoCidadeId = async (linha) => {
-        if (!regiaoSelecionadaId) return null
-
-        const { data, error } = await supabase
+        const tentativaPorCidade = await supabase
             .from('planos_cidade')
             .select('id')
-            .eq('regiao_id', regiaoSelecionadaId)
+            .eq('cidade_id', cidadeId)
             .eq('plano_id', planoId)
             .eq('procedimento_cod', linha.codigo)
             .maybeSingle()
+
+        let data = tentativaPorCidade.data
+        let error = tentativaPorCidade.error
+
+        if (error && regiaoSelecionadaId) {
+            // Compatibilidade com bases antigas onde planos_cidade ainda usa regiao_id.
+            const tentativaPorRegiao = await supabase
+                .from('planos_cidade')
+                .select('id')
+                .eq('regiao_id', regiaoSelecionadaId)
+                .eq('plano_id', planoId)
+                .eq('procedimento_cod', linha.codigo)
+                .maybeSingle()
+
+            data = tentativaPorRegiao.data
+            error = tentativaPorRegiao.error
+        }
 
         if (error) {
             setErroDetalhe(`Erro ao localizar registro de diferença: ${error.message}`)
@@ -740,17 +773,14 @@ const Supertabelamain = () => {
 
                 <div className='supertabelamain_filters'>
                     <div className='supertabelamain_filters_input'>
-                        <p>Busca (Procedimento, Código ou Parceiro)</p>
+                        <p>Busca</p>
                         <input
                             className='supertabelamain_filters_input_text'
                             type="text"
-                            placeholder='Buscar por procedimento, código ou parceiro'
+                            placeholder='Código, procedimento, parceiro ou categoria'
                             value={termoBusca}
                             onChange={(event) => setTermoBusca(event.target.value)}
                         />
-                        <button className='supertabelamain_filters_input_button' type="button">
-                            Buscar
-                        </button>
                     </div>
 
                     <div className='supertabelamain_filters_select'>
@@ -805,7 +835,6 @@ const Supertabelamain = () => {
                     </div>
 
                     <div className='supertabelamain_filters_select'>
-                        <p>Edição</p>
                         <label className='supertabelamain_filters_checkbox_wrap'>
                             <input
                                 type="checkbox"

@@ -6,6 +6,7 @@ import Layout2 from './components/Layout2/Layout2';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute'
 import Supertabeladoc from './pages/Supertabela/Supertabela_doc/Supertabeladoc';
 import Supertabelamain from './pages/Supertabela/Supertabela_main/Supertabelamain';
+import Supertabelacidades from './pages/Supertabela/Supertabela_cidades/Supertabelacidades';
 import NotFound from './pages/NotFound/NotFound';
 function App() {
   return (
@@ -40,6 +41,16 @@ function App() {
             element={
               <PrivateRoute>
                 <Supertabelamain />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/supertabela/cidades"
+            element={
+              <PrivateRoute>
+                <Supertabelacidades />
               </PrivateRoute>
             }
           />
