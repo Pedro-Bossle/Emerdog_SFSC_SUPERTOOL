@@ -3,6 +3,9 @@ import './Supertabeladoc.css'
 
 const Supertabeladoc = () => {
     const [isHoveringIframe, setIsHoveringIframe] = useState(false)
+    const planilhaId = '1LIKUGWPx6Dd5mjYhDIcdOHWikYDIKEyW9hxA_vHif4s'
+    const planilhaPreviewUrl = `https://docs.google.com/spreadsheets/d/${planilhaId}/preview`
+    const planilhaEditUrl = `https://docs.google.com/spreadsheets/d/${planilhaId}/edit`
 
     useEffect(() => {
         if (!isHoveringIframe) return undefined
@@ -44,8 +47,20 @@ const Supertabeladoc = () => {
                 onMouseEnter={() => setIsHoveringIframe(true)}
                 onMouseLeave={() => setIsHoveringIframe(false)}
             >
-                <iframe className="documentation_iframe" src="https://docs.google.com/spreadsheets/d/1LIKUGWPx6Dd5mjYhDIcdOHWikYDIKEyW9hxA_vHif4s/edit?rm=minimal" title="Super Tabela" />
+                <iframe
+                    className="documentation_iframe"
+                    src={planilhaPreviewUrl}
+                    title="Super Tabela"
+                    loading="lazy"
+                    referrerPolicy="no-referrer-when-downgrade"
+                />
             </div>
+            <p>
+                Se a pré-visualização não carregar no site, abra a planilha em uma nova aba:{' '}
+                <a href={planilhaEditUrl} target="_blank" rel="noreferrer">
+                    Abrir no Google Sheets
+                </a>
+            </p>
             <div>
                 <h2>A Tabela Excel</h2>
                 <p>A aba principal é o ponto central dela, nela você visualiza todos os planos de todas as cidades, na “Planos Caxias” você via as informações dos planos em Caxias do Sul, em seguida temos a Sutilvet (uma tabela de negociação especifica) e a Lab Axys, uma tabela de Porto Alegre para um laboratório. Temos também as tabelas DATA, a DATA é a enorme galeria de valores, para esse display ela está limitada a somente Caxias do Sul e Porto Alegre, porém eram repetidas estas colunas para TODAS as regiões. A DATA COD é mais leve, serve somente para filtrar os nomes e os códigos dos procedimentos. Quer conferir como ela funcionava nas formulas? Olhe nas celulas A13 e B13 da tabela DATA e se divirta nas linhas de código! </p>
