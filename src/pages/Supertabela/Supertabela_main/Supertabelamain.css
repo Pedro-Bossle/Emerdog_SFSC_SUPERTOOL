@@ -2,6 +2,7 @@
     text-align: center;
     margin: 0 2.5em 2.5em 2.5em;
     color: var(--cinza-escuro);
+    font-family: var(--fonte-principal), sans-serif;
 }
 
 hr {
@@ -52,6 +53,23 @@ hr {
     transition: padding 0.2s ease, margin 0.2s ease, box-shadow 0.2s ease;
 }
 
+.supertabelamain_filters_input,
+.supertabelamain_filters_select {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.supertabelamain_filters_input p,
+.supertabelamain_filters_select p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--azul-escuro);
+    line-height: 1.1;
+}
+
 .supertabelamain_header.is-compact .supertabelamain_filters {
     padding: 0.55em 1.5em;
     margin: 0.35em auto;
@@ -59,12 +77,15 @@ hr {
 }
 
 .supertabelamain_filters_input_text {
+    height: 38px;
     padding: 8px 12px;
     text-align: start;
     border-radius: 8px;
     border: 1px solid var(--azul-escuro);
     min-width: 290px;
     background: white;
+    font-size: 0.92rem;
+    font-family: inherit;
 }
 
 .supertabelamain_filters_input_button {
@@ -85,11 +106,14 @@ hr {
 
 
 .supertabelamain_filters_select_select {
+    height: 38px;
     padding: 8px 12px;
     border-radius: 8px;
     border: 1px solid var(--azul-destaque);
     background-color: white;
     min-width: 130px;
+    font-size: 0.92rem;
+    font-family: inherit;
 }
 
 .supertabelamain_filters_checkbox_wrap {

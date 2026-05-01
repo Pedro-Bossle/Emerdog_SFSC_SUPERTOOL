@@ -5,7 +5,7 @@
 .content {
     min-height: 100vh;
     transition: margin-left 0.3s ease, width 0.3s ease;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .content.open {
