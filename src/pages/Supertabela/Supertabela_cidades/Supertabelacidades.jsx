@@ -1408,7 +1408,7 @@ const Supertabelacidades = () => {
                                                             ignorarConfirmacao: event.shiftKey,
                                                         })
                                                     }
-                                                    title='Excluir procedimento'
+                                                    title='Excluir proc., SHIFT = Excluir Rápido'
                                                 >
                                                     🗑️
                                                 </button>
