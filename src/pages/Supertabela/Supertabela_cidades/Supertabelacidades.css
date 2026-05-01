@@ -386,6 +386,12 @@
     padding: 3px 8px;
 }
 
+.row_delete_btn:hover {
+    background-color: #ffd2d2;
+    border: 1px solid  #ec4242;
+}
+
+
 .row_delete_btn.is-confirm {
     border-color: #cc8d8d;
     background: #ffecec;
