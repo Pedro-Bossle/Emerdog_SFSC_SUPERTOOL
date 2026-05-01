@@ -37,8 +37,10 @@ const menuItems = [
         label: 'Super-Tabela',
         children: [
             { label: 'Visão geral', href: '/supertabelamain' },
-            { label: 'Filtros', href: '/supertabela/filtros' },
-            { label: 'Negociações', href: '/supertabela/Negociacoes' },
+            { label: 'Cidades', href: '/supertabela/cidades' },
+            { label: 'Planos', href: '/supertabela/planos' },
+            { label: 'Procedimentos', href: '/supertabela/procedimentos' },
+            { label: 'Negociações', href: '/supertabela/negociacoes' },
             { label: 'Documentação', href: '/supertabeladoc' },
         ],
     },
