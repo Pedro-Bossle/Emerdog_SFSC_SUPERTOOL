@@ -1158,6 +1158,17 @@ const Supertabelamain = () => {
                                             <col style={{ width: '10.8%' }} />
                                             <col style={{ width: '10.8%' }} />
                                         </colgroup>
+                                        <thead>
+                                            <tr>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'codigo')}>Código{obterIndicadorOrdenacao(secao.categoriaId, 'codigo')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'procedimento')}>Procedimento{obterIndicadorOrdenacao(secao.categoriaId, 'procedimento')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteP')}>Porte P{obterIndicadorOrdenacao(secao.categoriaId, 'porteP')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteM')}>Porte M{obterIndicadorOrdenacao(secao.categoriaId, 'porteM')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteG')}>Porte G{obterIndicadorOrdenacao(secao.categoriaId, 'porteG')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'diferenca')}>Diferença {planoSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'diferenca')}</th>
+                                                <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'custo')}>Custo {porteSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'custo')}</th>
+                                            </tr>
+                                        </thead>
                                         <tbody>
                                             {secao.linhas.map((linha, linhaIndex) => {
                                                 const linhaPar = linhaIndex % 2 === 1
