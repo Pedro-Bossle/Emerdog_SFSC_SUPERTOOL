@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
+import '../Supertabela_main/Supertabelamain.css'
 import './Supertabelaprocedimentos.css'
 
 const ORDEM_PLANOS = ['basico', 'classico', 'avancado', 'ultra']
