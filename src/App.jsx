@@ -8,6 +8,8 @@ import Supertabeladoc from './pages/Supertabela/Supertabela_doc/Supertabeladoc';
 import Supertabelamain from './pages/Supertabela/Supertabela_main/Supertabelamain';
 import Supertabelacidades from './pages/Supertabela/Supertabela_cidades/Supertabelacidades';
 import Supertabelaplanos from './pages/Supertabela/Supertabela_planos/Supertabelaplanos';
+import Supertabelaprocedimentos from './pages/Supertabela/Supertabela_procedimentos/Supertabelaprocedimentos';
+import Supertabelanegociacoes from './pages/Supertabela/Supertabela_negociacoes/Supertabelanegociacoes';
 import NotFound from './pages/NotFound/NotFound';
 function App() {
   return (
@@ -62,6 +64,26 @@ function App() {
             element={
               <PrivateRoute>
                 <Supertabelaplanos />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/supertabela/procedimentos"
+            element={
+              <PrivateRoute>
+                <Supertabelaprocedimentos />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/supertabela/negociacoes"
+            element={
+              <PrivateRoute>
+                <Supertabelanegociacoes />
               </PrivateRoute>
             }
           />

@@ -19,6 +19,7 @@ CREATE TABLE public.negociacoes_vet (
   procedimento_id integer,
   porte_id integer,
   valor numeric NOT NULL,
+  nome_alternativo text,
   CONSTRAINT negociacoes_vet_pkey PRIMARY KEY (id),
   CONSTRAINT negociacoes_vet_veterinario_id_fkey FOREIGN KEY (veterinario_id) REFERENCES public.veterinarios(id),
   CONSTRAINT negociacoes_vet_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES public.procedimentos(id),
@@ -81,10 +82,12 @@ CREATE TABLE public.repasses (
   cidade_id integer,
   porte_id integer,
   valor numeric NOT NULL,
+  regiao_id integer DEFAULT 1,
   CONSTRAINT repasses_pkey PRIMARY KEY (id),
   CONSTRAINT repasses_cidade_id_fkey FOREIGN KEY (cidade_id) REFERENCES public.cidades(id),
   CONSTRAINT repasses_porte_id_fkey FOREIGN KEY (porte_id) REFERENCES public.portes(id),
-  CONSTRAINT repasses_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES public.procedimentos(codigo)
+  CONSTRAINT repasses_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES public.procedimentos(codigo),
+  CONSTRAINT repasses_regiao_id_fkey FOREIGN KEY (regiao_id) REFERENCES public.regioes(id)
 );
 CREATE TABLE public.veterinarios (
   id integer NOT NULL DEFAULT nextval('veterinarios_id_seq'::regclass),

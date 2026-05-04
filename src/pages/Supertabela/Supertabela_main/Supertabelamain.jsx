@@ -3,6 +3,11 @@ import './Supertabelamain.css'
 import { supabase } from '../../../lib/supabase'
 
 const Supertabelamain = () => {
+    const ALTURA_LINHA_TABELA = 42
+    const MAX_LINHAS_VISIVEIS = 10
+    const LINHAS_OVERSCAN = 6
+    const ORDEM_PLANOS = ['basico', 'classico', 'avancado', 'ultra']
+
     const [cidades, setCidades] = useState([])
     const [planos, setPlanos] = useState([])
     const [portes, setPortes] = useState([])
@@ -14,12 +19,13 @@ const Supertabelamain = () => {
     const [porteSelecionado, setPorteSelecionado] = useState('')
 
     const [termoBusca, setTermoBusca] = useState('')
-    const [loading, setLoading] = useState(false)
+    const [, setLoading] = useState(false)
     const [erroDetalhe, setErroDetalhe] = useState('')
     const [ordenacaoPorCategoria, setOrdenacaoPorCategoria] = useState({})
-    const [headerCompacto, setHeaderCompacto] = useState(false)
+    const [headerCompactProgress, setHeaderCompactProgress] = useState(0)
     const [edicaoAtiva, setEdicaoAtiva] = useState(false)
     const [edicoesLocais, setEdicoesLocais] = useState({})
+    const [scrollTopoPorCategoria, setScrollTopoPorCategoria] = useState({})
 
     /**
      * Resolve a cidade ativa e o respectivo ID de região.
@@ -48,6 +54,57 @@ const Supertabelamain = () => {
             .replace(/[\u0300-\u036f]/g, '')
             .trim()
             .toUpperCase()
+
+    /**
+     * Normaliza nomes para facilitar mapeamento dos planos por chave lógica.
+     */
+    const normalizarPlanoNome = (nome) =>
+        String(nome || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .trim()
+            .toUpperCase()
+
+    /**
+     * Mapeia planos da base para as chaves de hierarquia (Básico -> Ultra).
+     */
+    const mapearPlanosPorChave = () => {
+        const usados = new Set()
+        const resultado = {}
+        const lista = planos || []
+
+        const localizar = (chave, matcher) => {
+            const encontrado = lista.find((plano) => {
+                if (usados.has(plano.id)) return false
+                return matcher(normalizarPlanoNome(plano.nome))
+            })
+            if (encontrado) {
+                usados.add(encontrado.id)
+                resultado[chave] = { id: Number(encontrado.id), nome: encontrado.nome }
+            } else {
+                resultado[chave] = null
+            }
+        }
+
+        localizar('basico', (nome) => nome.includes('BASICO') || nome.includes('BASIC'))
+        localizar('classico', (nome) => nome.includes('CLASSICO'))
+        localizar('avancado', (nome) => nome.includes('AVANCADO'))
+        localizar('ultra', (nome) => nome.includes('ULTRA'))
+
+        return resultado
+    }
+
+    const obterChavePlanoSelecionado = (mapaPlanos) => {
+        const planoIdNumerico = Number(planoId)
+        const entrada = ORDEM_PLANOS.find((chave) => Number(mapaPlanos[chave]?.id) === planoIdNumerico)
+        if (entrada) return entrada
+
+        const indicePorPosicao = planos.findIndex((plano) => Number(plano.id) === planoIdNumerico)
+        if (indicePorPosicao >= 0 && indicePorPosicao < ORDEM_PLANOS.length) {
+            return ORDEM_PLANOS[indicePorPosicao]
+        }
+        return null
+    }
 
     /**
      * Obtém um ID de porte pela letra (P/M/G) usando a lista da tabela portes.
@@ -121,8 +178,7 @@ const Supertabelamain = () => {
     }
 
     /**
-     * Busca dados de planos_cidade e repasses conforme filtros,
-     * cruza por procedimento e calcula custo (porte selecionado - diferenca).
+     * Busca procedimentos elegíveis por plano_base_id e cruza com dados locais da cidade/região.
      */
     const buscarLinhasTabela = async () => {
         if (!cidadeId || !planoId || portes.length === 0) return
@@ -134,6 +190,25 @@ const Supertabelamain = () => {
                 setErroDetalhe('Cidade selecionada não encontrada na lista.')
                 return
             }
+
+            const mapaPlanos = mapearPlanosPorChave()
+            const chavePlanoSelecionado = obterChavePlanoSelecionado(mapaPlanos)
+            if (!chavePlanoSelecionado) {
+                setErroDetalhe('Não foi possível mapear o plano selecionado para a hierarquia de plano base.')
+                return
+            }
+
+            const indicePlanoSelecionado = ORDEM_PLANOS.indexOf(chavePlanoSelecionado)
+            const planosBaseElegiveis = ORDEM_PLANOS
+                .slice(0, indicePlanoSelecionado + 1)
+                .map((chave) => mapaPlanos[chave]?.id)
+                .filter(Boolean)
+                .map((id) => Number(id))
+
+            const procedimentosResp = await supabase
+                .from('procedimentos')
+                .select('codigo, nome, categoria_id, plano_base_id')
+                .in('plano_base_id', planosBaseElegiveis)
 
             const [planosCidadeResp, repassesPorCidadeResp] = await Promise.all([
                 supabase
@@ -176,8 +251,13 @@ const Supertabelamain = () => {
                 errRepasses = fallbackRepasses.error
             }
 
-            if (errPlanosCidade || errRepasses) {
-                const detalhes = [errPlanosCidade?.message, errRepasses?.message].filter(Boolean).join(' | ')
+            const procedimentosData = procedimentosResp.data
+            const errProcedimentos = procedimentosResp.error
+
+            if (errPlanosCidade || errRepasses || errProcedimentos) {
+                const detalhes = [errPlanosCidade?.message, errRepasses?.message, errProcedimentos?.message]
+                    .filter(Boolean)
+                    .join(' | ')
                 setErroDetalhe(`Erro ao buscar tabela principal: ${detalhes}`)
                 return
             }
@@ -187,42 +267,34 @@ const Supertabelamain = () => {
             const porteIdG = obterPorteIdPorLetra('G')
 
             const mapaRepassesPorProcedimento = new Map()
-            ;(repasses || []).forEach((item) => {
-                const procId = String(item.procedimento_id)
-                const porteId = String(item.porte_id)
-                const valor = Number(item.valor || 0)
+                ; (repasses || []).forEach((item) => {
+                    const procId = String(item.procedimento_id)
+                    const porteId = String(item.porte_id)
+                    const valor = Number(item.valor || 0)
 
-                if (!mapaRepassesPorProcedimento.has(procId)) {
-                    mapaRepassesPorProcedimento.set(procId, {})
-                }
-                mapaRepassesPorProcedimento.get(procId)[porteId] = {
-                    repasseId: item.id,
-                    valor,
-                }
-            })
+                    if (!mapaRepassesPorProcedimento.has(procId)) {
+                        mapaRepassesPorProcedimento.set(procId, {})
+                    }
+                    mapaRepassesPorProcedimento.get(procId)[porteId] = {
+                        repasseId: item.id,
+                        valor,
+                    }
+                })
 
-            const codigosProcedimento = [...new Set((planosCidade || []).map((item) => String(item.procedimento_cod)))]
-            const { data: procedimentosData, error: errProcedimentos } = await supabase
-                .from('procedimentos')
-                .select('codigo, nome, categoria_id')
-                .in('codigo', codigosProcedimento)
-
-            if (errProcedimentos) {
-                setErroDetalhe(`Erro ao carregar nomes de procedimentos: ${errProcedimentos.message}`)
-                return
-            }
-
-            const mapaProcedimentos = new Map(
-                (procedimentosData || []).map((item) => [
-                    String(item.codigo),
-                    { nome: String(item.nome), categoriaId: item.categoria_id },
+            const mapaPlanosCidade = new Map(
+                (planosCidade || []).map((item) => [
+                    String(item.procedimento_cod),
+                    {
+                        planoCidadeId: item.id,
+                        diferenca: Number(item.diferenca || 0),
+                    },
                 ])
             )
 
-            const linhasMontadas = (planosCidade || []).map((item) => {
-                const procId = String(item.procedimento_cod)
+            const linhasMontadas = (procedimentosData || []).map((item) => {
+                const procId = String(item.codigo)
                 const valoresPorPorte = mapaRepassesPorProcedimento.get(procId) || {}
-                const diferenca = Number(item.diferenca || 0)
+                const diferenca = Number(mapaPlanosCidade.get(procId)?.diferenca || 0)
 
                 const valorP = porteIdP ? Number(valoresPorPorte[porteIdP]?.valor || 0) : 0
                 const valorM = porteIdM ? Number(valoresPorPorte[porteIdM]?.valor || 0) : 0
@@ -230,11 +302,11 @@ const Supertabelamain = () => {
                 const valorPorteSelecionado = Number(valoresPorPorte[String(porteSelecionado)]?.valor || 0)
 
                 return {
-                    planoCidadeId: item.id,
+                    planoCidadeId: mapaPlanosCidade.get(procId)?.planoCidadeId || null,
                     codigo: procId,
-                    procedimento: mapaProcedimentos.get(procId)?.nome || procId,
-                    categoriaId: mapaProcedimentos.get(procId)?.categoriaId || null,
-                    parceiro: mapaProcedimentos.get(procId)?.parceiro || '',
+                    procedimento: String(item.nome || procId),
+                    categoriaId: item.categoria_id || null,
+                    parceiro: '',
                     porteP: valorP,
                     porteM: valorM,
                     porteG: valorG,
@@ -495,16 +567,47 @@ const Supertabelamain = () => {
      * Persiste no banco o valor de diferença e atualiza estado local.
      */
     const salvarDiferencaValor = async (linha, valorNumerico) => {
-        const planoCidadeId = linha.planoCidadeId ?? await resolverPlanoCidadeId(linha)
-        if (planoCidadeId == null) {
-            setErroDetalhe('Registro de plano/cidade não identificado para editar diferença.')
-            return false
-        }
+        let planoCidadeId = linha.planoCidadeId ?? await resolverPlanoCidadeId(linha)
+        let error = null
 
-        const { error } = await supabase
-            .from('planos_cidade')
-            .update({ diferenca: valorNumerico })
-            .eq('id', planoCidadeId)
+        if (planoCidadeId == null) {
+            const tentativaPorCidade = await supabase
+                .from('planos_cidade')
+                .insert({
+                    cidade_id: Number(cidadeId),
+                    plano_id: Number(planoId),
+                    procedimento_cod: linha.codigo,
+                    diferenca: valorNumerico,
+                })
+                .select('id')
+                .single()
+
+            planoCidadeId = tentativaPorCidade.data?.id ?? null
+            error = tentativaPorCidade.error
+
+            if (error && regiaoSelecionadaId) {
+                const tentativaPorRegiao = await supabase
+                    .from('planos_cidade')
+                    .insert({
+                        regiao_id: Number(regiaoSelecionadaId),
+                        plano_id: Number(planoId),
+                        procedimento_cod: linha.codigo,
+                        diferenca: valorNumerico,
+                    })
+                    .select('id')
+                    .single()
+
+                planoCidadeId = tentativaPorRegiao.data?.id ?? null
+                error = tentativaPorRegiao.error
+            }
+        } else {
+            const atualizacao = await supabase
+                .from('planos_cidade')
+                .update({ diferenca: valorNumerico })
+                .eq('id', planoCidadeId)
+
+            error = atualizacao.error
+        }
 
         if (error) {
             setErroDetalhe(`Erro ao salvar diferença: ${error.message}`)
@@ -755,20 +858,39 @@ const Supertabelamain = () => {
      * Compacta o header de filtros quando a página está rolada.
      */
     useEffect(() => {
+        let rafId = null
+
         const onScroll = () => {
-            setHeaderCompacto(window.scrollY > 40)
+            if (rafId) return
+
+            rafId = window.requestAnimationFrame(() => {
+                const progress = Math.min(Math.max(window.scrollY, 0) / 64, 1)
+                setHeaderCompactProgress((anterior) => {
+                    if (Math.abs(anterior - progress) < 0.01) return anterior
+                    return progress
+                })
+                rafId = null
+            })
         }
 
         onScroll()
         window.addEventListener('scroll', onScroll)
-        return () => window.removeEventListener('scroll', onScroll)
+        return () => {
+            window.removeEventListener('scroll', onScroll)
+            if (rafId) {
+                window.cancelAnimationFrame(rafId)
+            }
+        }
     }, [])
 
     return (
         <div className='supertabelamain'>
             <h1>Supertabela</h1>
-                <hr />
-            <header className={`supertabelamain_header ${headerCompacto ? 'is-compact' : ''}`}>
+            <hr />
+            <header
+                className='supertabelamain_header'
+                style={{ '--compact-progress': headerCompactProgress }}
+            >
                 <h2>Filtros</h2>
 
                 <div className='supertabelamain_filters'>
@@ -777,7 +899,7 @@ const Supertabelamain = () => {
                         <input
                             className='supertabelamain_filters_input_text'
                             type="text"
-                            placeholder='Código, procedimento, parceiro ou categoria'
+                            placeholder='Código, procedimento ou categoria'
                             value={termoBusca}
                             onChange={(event) => setTermoBusca(event.target.value)}
                         />
@@ -868,102 +990,254 @@ const Supertabelamain = () => {
                 {secoesPorCategoria.length === 0 ? (
                     <p>Nenhum registro encontrado para os filtros selecionados.</p>
                 ) : (
-                    secoesPorCategoria.map((secao) => (
-                        <section className='categoria_secao' key={secao.categoriaId}>
-                            <h2 className='categoria_titulo'>{secao.categoriaNome}</h2>
-                            <table className='table_main'>
-                                <colgroup>
-                                    <col style={{ width: '12%' }} />
-                                    <col style={{ width: '34%' }} />
-                                    <col style={{ width: '10.8%' }} />
-                                    <col style={{ width: '10.8%' }} />
-                                    <col style={{ width: '10.8%' }} />
-                                    <col style={{ width: '10.8%' }} />
-                                    <col style={{ width: '10.8%' }} />
-                                </colgroup>
-                                <thead>
-                                    <tr>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'codigo')}>Código{obterIndicadorOrdenacao(secao.categoriaId, 'codigo')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'procedimento')}>Procedimento{obterIndicadorOrdenacao(secao.categoriaId, 'procedimento')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteP')}>Porte P{obterIndicadorOrdenacao(secao.categoriaId, 'porteP')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteM')}>Porte M{obterIndicadorOrdenacao(secao.categoriaId, 'porteM')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteG')}>Porte G{obterIndicadorOrdenacao(secao.categoriaId, 'porteG')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'diferenca')}>Diferença {planoSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'diferenca')}</th>
-                                        <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'custo')}>Custo {porteSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'custo')}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {secao.linhas.map((linha, linhaIndex) => (
-                                        <tr key={`${secao.categoriaId}-${linha.codigo}`}>
-                                            <td className='table_text_left'>{linha.codigo}</td>
-                                            <td className={`table_text_left ${obterClasseProcedimento(linha.procedimento)}`}>{linha.procedimento}</td>
-                                            <td>
-                                                {edicaoAtiva ? (
-                                                    <input
-                                                        className='table_cell_input'
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={obterValorInputRepasse(linha, 'porteP', secao.categoriaId)}
-                                                        onChange={(event) => atualizarEdicaoLocal(linha, 'porteP', secao.categoriaId, event.target.value)}
-                                                        onBlur={() => salvarRepasseEditado(linha, 'porteP', secao.categoriaId)}
-                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteP')}
-                                                    />
-                                                ) : (
-                                                    formatarMoeda(linha.porteP)
-                                                )}
-                                            </td>
-                                            <td>
-                                                {edicaoAtiva ? (
-                                                    <input
-                                                        className='table_cell_input'
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={obterValorInputRepasse(linha, 'porteM', secao.categoriaId)}
-                                                        onChange={(event) => atualizarEdicaoLocal(linha, 'porteM', secao.categoriaId, event.target.value)}
-                                                        onBlur={() => salvarRepasseEditado(linha, 'porteM', secao.categoriaId)}
-                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteM')}
-                                                    />
-                                                ) : (
-                                                    formatarMoeda(linha.porteM)
-                                                )}
-                                            </td>
-                                            <td>
-                                                {edicaoAtiva ? (
-                                                    <input
-                                                        className='table_cell_input'
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={obterValorInputRepasse(linha, 'porteG', secao.categoriaId)}
-                                                        onChange={(event) => atualizarEdicaoLocal(linha, 'porteG', secao.categoriaId, event.target.value)}
-                                                        onBlur={() => salvarRepasseEditado(linha, 'porteG', secao.categoriaId)}
-                                                        onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteG')}
-                                                    />
-                                                ) : (
-                                                    formatarMoeda(linha.porteG)
-                                                )}
-                                            </td>
-                                            <td>
-                                                {edicaoAtiva ? (
-                                                    <input
-                                                        className='table_cell_input'
-                                                        type="number"
-                                                        step="0.01"
-                                                        value={obterValorInputRepasse(linha, 'diferenca', secao.categoriaId)}
-                                                        onChange={(event) => atualizarEdicaoLocal(linha, 'diferenca', secao.categoriaId, event.target.value)}
-                                                        onBlur={() => salvarDiferencaEditada(linha, secao.categoriaId)}
-                                                        onPaste={(event) => processarColagemDiferenca(event, secao, linhaIndex)}
-                                                    />
-                                                ) : (
-                                                    formatarMoeda(linha.diferenca)
-                                                )}
-                                            </td>
-                                            <td className={linha.custo < 0 ? 'table_custo_negativo' : ''}>{formatarMoeda(linha.custo)}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </section>
-                    ))
+                    secoesPorCategoria.map((secao) => {
+                        const totalLinhasSecao = secao.linhas.length
+                        const usarVirtualizacao = totalLinhasSecao > MAX_LINHAS_VISIVEIS
+                        const alturaVisivelCorpo = Math.min(totalLinhasSecao, MAX_LINHAS_VISIVEIS) * ALTURA_LINHA_TABELA
+                        const scrollTopoAtual = Number(scrollTopoPorCategoria[secao.categoriaId] || 0)
+                        const indiceInicial = Math.max(
+                            0,
+                            Math.floor(scrollTopoAtual / ALTURA_LINHA_TABELA) - LINHAS_OVERSCAN
+                        )
+                        const quantidadeRenderizada =
+                            Math.ceil(alturaVisivelCorpo / ALTURA_LINHA_TABELA) + LINHAS_OVERSCAN * 2
+                        const indiceFinal = Math.min(totalLinhasSecao, indiceInicial + quantidadeRenderizada)
+                        const linhasVisiveis = secao.linhas.slice(indiceInicial, indiceFinal)
+                        const alturaEspacadorTopo = indiceInicial * ALTURA_LINHA_TABELA
+                        const alturaEspacadorBase = (totalLinhasSecao - indiceFinal) * ALTURA_LINHA_TABELA
+
+                        return (
+                            <section className='categoria_secao' key={secao.categoriaId}>
+                                <h2 className='categoria_titulo'>{secao.categoriaNome}</h2>
+
+                                {usarVirtualizacao ? (
+                                    <>
+                                        <table className='table_main table_main_virtual_header'>
+                                            <colgroup>
+                                                <col style={{ width: '12%' }} />
+                                                <col style={{ width: '34%' }} />
+                                                <col style={{ width: '10.8%' }} />
+                                                <col style={{ width: '10.8%' }} />
+                                                <col style={{ width: '10.8%' }} />
+                                                <col style={{ width: '10.8%' }} />
+                                                <col style={{ width: '10.8%' }} />
+                                            </colgroup>
+                                            <thead>
+                                                <tr>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'codigo')}>Código{obterIndicadorOrdenacao(secao.categoriaId, 'codigo')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'procedimento')}>Procedimento{obterIndicadorOrdenacao(secao.categoriaId, 'procedimento')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteP')}>Porte P{obterIndicadorOrdenacao(secao.categoriaId, 'porteP')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteM')}>Porte M{obterIndicadorOrdenacao(secao.categoriaId, 'porteM')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'porteG')}>Porte G{obterIndicadorOrdenacao(secao.categoriaId, 'porteG')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'diferenca')}>Diferença {planoSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'diferenca')}</th>
+                                                    <th className='table_header' onClick={() => handleOrdenarCategoria(secao.categoriaId, 'custo')}>Custo {porteSelecionadoNome}{obterIndicadorOrdenacao(secao.categoriaId, 'custo')}</th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+
+                                        <div
+                                            className='table_main_virtual_body'
+                                            style={{ maxHeight: `${Math.max(alturaVisivelCorpo, ALTURA_LINHA_TABELA)}px` }}
+                                            onScroll={(event) => {
+                                                const scrollTopAtual = event.currentTarget?.scrollTop ?? 0
+                                                setScrollTopoPorCategoria((anterior) => ({
+                                                    ...anterior,
+                                                    [secao.categoriaId]: scrollTopAtual,
+                                                }))
+                                            }}
+                                        >
+                                            <table className='table_main table_main_virtual_rows'>
+                                                <colgroup>
+                                                    <col style={{ width: '12%' }} />
+                                                    <col style={{ width: '34%' }} />
+                                                    <col style={{ width: '10.8%' }} />
+                                                    <col style={{ width: '10.8%' }} />
+                                                    <col style={{ width: '10.8%' }} />
+                                                    <col style={{ width: '10.8%' }} />
+                                                    <col style={{ width: '10.8%' }} />
+                                                </colgroup>
+                                                <tbody>
+                                                    {alturaEspacadorTopo > 0 && (
+                                                        <tr className='table_spacer_row' aria-hidden='true'>
+                                                            <td colSpan={7} style={{ height: `${alturaEspacadorTopo}px` }} />
+                                                        </tr>
+                                                    )}
+
+                                                    {linhasVisiveis.map((linha, indiceLocal) => {
+                                                        const linhaIndex = indiceInicial + indiceLocal
+                                                        const linhaPar = linhaIndex % 2 === 1
+                                                        return (
+                                                            <tr
+                                                                key={`${secao.categoriaId}-${linha.codigo}`}
+                                                                className={linhaPar ? 'table_row_even' : ''}
+                                                            >
+                                                                <td className='table_text_left'>{linha.codigo}</td>
+                                                                <td className={`table_text_left ${obterClasseProcedimento(linha.procedimento)}`}>{linha.procedimento}</td>
+                                                                <td>
+                                                                    {edicaoAtiva ? (
+                                                                        <input
+                                                                            className='table_cell_input'
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            value={obterValorInputRepasse(linha, 'porteP', secao.categoriaId)}
+                                                                            onChange={(event) => atualizarEdicaoLocal(linha, 'porteP', secao.categoriaId, event.target.value)}
+                                                                            onBlur={() => salvarRepasseEditado(linha, 'porteP', secao.categoriaId)}
+                                                                            onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteP')}
+                                                                        />
+                                                                    ) : (
+                                                                        formatarMoeda(linha.porteP)
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {edicaoAtiva ? (
+                                                                        <input
+                                                                            className='table_cell_input'
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            value={obterValorInputRepasse(linha, 'porteM', secao.categoriaId)}
+                                                                            onChange={(event) => atualizarEdicaoLocal(linha, 'porteM', secao.categoriaId, event.target.value)}
+                                                                            onBlur={() => salvarRepasseEditado(linha, 'porteM', secao.categoriaId)}
+                                                                            onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteM')}
+                                                                        />
+                                                                    ) : (
+                                                                        formatarMoeda(linha.porteM)
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {edicaoAtiva ? (
+                                                                        <input
+                                                                            className='table_cell_input'
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            value={obterValorInputRepasse(linha, 'porteG', secao.categoriaId)}
+                                                                            onChange={(event) => atualizarEdicaoLocal(linha, 'porteG', secao.categoriaId, event.target.value)}
+                                                                            onBlur={() => salvarRepasseEditado(linha, 'porteG', secao.categoriaId)}
+                                                                            onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteG')}
+                                                                        />
+                                                                    ) : (
+                                                                        formatarMoeda(linha.porteG)
+                                                                    )}
+                                                                </td>
+                                                                <td>
+                                                                    {edicaoAtiva ? (
+                                                                        <input
+                                                                            className='table_cell_input'
+                                                                            type="number"
+                                                                            step="0.01"
+                                                                            value={obterValorInputRepasse(linha, 'diferenca', secao.categoriaId)}
+                                                                            onChange={(event) => atualizarEdicaoLocal(linha, 'diferenca', secao.categoriaId, event.target.value)}
+                                                                            onBlur={() => salvarDiferencaEditada(linha, secao.categoriaId)}
+                                                                            onPaste={(event) => processarColagemDiferenca(event, secao, linhaIndex)}
+                                                                        />
+                                                                    ) : (
+                                                                        formatarMoeda(linha.diferenca)
+                                                                    )}
+                                                                </td>
+                                                                <td className={linha.custo < 0 ? 'table_custo_negativo' : ''}>{formatarMoeda(linha.custo)}</td>
+                                                            </tr>
+                                                        )
+                                                    })}
+
+                                                    {alturaEspacadorBase > 0 && (
+                                                        <tr className='table_spacer_row' aria-hidden='true'>
+                                                            <td colSpan={7} style={{ height: `${alturaEspacadorBase}px` }} />
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </>
+                                ) : (
+                                    <table className='table_main'>
+                                        <colgroup>
+                                            <col style={{ width: '12%' }} />
+                                            <col style={{ width: '34%' }} />
+                                            <col style={{ width: '10.8%' }} />
+                                            <col style={{ width: '10.8%' }} />
+                                            <col style={{ width: '10.8%' }} />
+                                            <col style={{ width: '10.8%' }} />
+                                            <col style={{ width: '10.8%' }} />
+                                        </colgroup>
+                                        <tbody>
+                                            {secao.linhas.map((linha, linhaIndex) => {
+                                                const linhaPar = linhaIndex % 2 === 1
+                                                return (
+                                                    <tr
+                                                        key={`${secao.categoriaId}-${linha.codigo}`}
+                                                        className={linhaPar ? 'table_row_even' : ''}
+                                                    >
+                                                        <td className='table_text_left'>{linha.codigo}</td>
+                                                        <td className={`table_text_left ${obterClasseProcedimento(linha.procedimento)}`}>{linha.procedimento}</td>
+                                                        <td>
+                                                            {edicaoAtiva ? (
+                                                                <input
+                                                                    className='table_cell_input'
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={obterValorInputRepasse(linha, 'porteP', secao.categoriaId)}
+                                                                    onChange={(event) => atualizarEdicaoLocal(linha, 'porteP', secao.categoriaId, event.target.value)}
+                                                                    onBlur={() => salvarRepasseEditado(linha, 'porteP', secao.categoriaId)}
+                                                                    onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteP')}
+                                                                />
+                                                            ) : (
+                                                                formatarMoeda(linha.porteP)
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {edicaoAtiva ? (
+                                                                <input
+                                                                    className='table_cell_input'
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={obterValorInputRepasse(linha, 'porteM', secao.categoriaId)}
+                                                                    onChange={(event) => atualizarEdicaoLocal(linha, 'porteM', secao.categoriaId, event.target.value)}
+                                                                    onBlur={() => salvarRepasseEditado(linha, 'porteM', secao.categoriaId)}
+                                                                    onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteM')}
+                                                                />
+                                                            ) : (
+                                                                formatarMoeda(linha.porteM)
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {edicaoAtiva ? (
+                                                                <input
+                                                                    className='table_cell_input'
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={obterValorInputRepasse(linha, 'porteG', secao.categoriaId)}
+                                                                    onChange={(event) => atualizarEdicaoLocal(linha, 'porteG', secao.categoriaId, event.target.value)}
+                                                                    onBlur={() => salvarRepasseEditado(linha, 'porteG', secao.categoriaId)}
+                                                                    onPaste={(event) => processarColagemRepasse(event, secao, linhaIndex, 'porteG')}
+                                                                />
+                                                            ) : (
+                                                                formatarMoeda(linha.porteG)
+                                                            )}
+                                                        </td>
+                                                        <td>
+                                                            {edicaoAtiva ? (
+                                                                <input
+                                                                    className='table_cell_input'
+                                                                    type="number"
+                                                                    step="0.01"
+                                                                    value={obterValorInputRepasse(linha, 'diferenca', secao.categoriaId)}
+                                                                    onChange={(event) => atualizarEdicaoLocal(linha, 'diferenca', secao.categoriaId, event.target.value)}
+                                                                    onBlur={() => salvarDiferencaEditada(linha, secao.categoriaId)}
+                                                                    onPaste={(event) => processarColagemDiferenca(event, secao, linhaIndex)}
+                                                                />
+                                                            ) : (
+                                                                formatarMoeda(linha.diferenca)
+                                                            )}
+                                                        </td>
+                                                        <td className={linha.custo < 0 ? 'table_custo_negativo' : ''}>{formatarMoeda(linha.custo)}</td>
+                                                    </tr>
+                                                )
+                                            })}
+                                        </tbody>
+                                    </table>
+                                )}
+                            </section>
+                        )
+                    })
                 )}
             </div>
         </div>

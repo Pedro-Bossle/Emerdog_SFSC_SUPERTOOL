@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../../lib/supabase'
+import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelacidades.css'
 
 const Supertabelacidades = () => {
@@ -35,6 +37,8 @@ const Supertabelacidades = () => {
     const [categoriaEmInclusao, setCategoriaEmInclusao] = useState(null)
     const [textoNovoProcedimento, setTextoNovoProcedimento] = useState('')
     const [novoProcedimentoSelecionadoCodigo, setNovoProcedimentoSelecionadoCodigo] = useState('')
+    const [popupSugestoesStyle, setPopupSugestoesStyle] = useState(null)
+    const sugestoesAnchorRef = useRef(null)
 
     const normalizarPorteNome = (nome) =>
         String(nome || '')
@@ -487,6 +491,68 @@ const Supertabelacidades = () => {
             .slice(0, 30)
     }, [categoriaEmInclusao, textoNovoProcedimento, linhas, procedimentos])
 
+    const atualizarPosicaoPopupSugestoes = useCallback(() => {
+        const ancora = sugestoesAnchorRef.current
+        if (!ancora) return
+        const rect = ancora.getBoundingClientRect()
+        setPopupSugestoesStyle({
+            top: rect.bottom + 4,
+            left: rect.left,
+            width: rect.width,
+        })
+    }, [])
+
+    useEffect(() => {
+        if (!categoriaEmInclusao) {
+            setPopupSugestoesStyle(null)
+            return
+        }
+        atualizarPosicaoPopupSugestoes()
+        window.addEventListener('resize', atualizarPosicaoPopupSugestoes)
+        window.addEventListener('scroll', atualizarPosicaoPopupSugestoes, true)
+        return () => {
+            window.removeEventListener('resize', atualizarPosicaoPopupSugestoes)
+            window.removeEventListener('scroll', atualizarPosicaoPopupSugestoes, true)
+        }
+    }, [categoriaEmInclusao, textoNovoProcedimento, sugestoesFiltradasInclusao.length, atualizarPosicaoPopupSugestoes])
+
+    const renderSugestoesPortal = (secao) => {
+        if (categoriaEmInclusao !== secao.categoriaId) return null
+        if (!popupSugestoesStyle || typeof document === 'undefined') return null
+        return createPortal(
+            <div
+                className='row_add_suggest_list is-portal'
+                style={{
+                    position: 'fixed',
+                    top: `${popupSugestoesStyle.top}px`,
+                    left: `${popupSugestoesStyle.left}px`,
+                    width: `${popupSugestoesStyle.width}px`,
+                }}
+            >
+                {sugestoesFiltradasInclusao.length === 0 ? (
+                    <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
+                ) : (
+                    sugestoesFiltradasInclusao.map((item) => (
+                        <button
+                            key={`${secao.categoriaId}-${item.codigo}`}
+                            type='button'
+                            className={`row_add_suggest_item ${normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) === normalizarTextoBusca(item.codigo) ? 'is-active' : ''
+                                }`}
+                            onClick={() => {
+                                setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
+                                setNovoProcedimentoSelecionadoCodigo(item.codigo)
+                            }}
+                        >
+                            <span>{item.nome}</span>
+                            <small>{item.codigo}</small>
+                        </button>
+                    ))
+                )}
+            </div>,
+            document.body
+        )
+    }
+
     const confirmarNovoProcedimentoCategoria = async (categoriaId) => {
         const sugestoes = obterSugestoesProcedimentos(categoriaId)
         const entrada = normalizarTextoBusca(textoNovoProcedimento)
@@ -791,15 +857,10 @@ const Supertabelacidades = () => {
             return
         }
 
-        const codigos = [...new Set(
-            codigosInicializacaoCidade
-                .split(',')
-                .map((item) => item.trim().toUpperCase())
-                .filter(Boolean)
-        )]
+        const codigos = extrairCodigosProcedimentoEmMassa(codigosInicializacaoCidade)
 
         if (codigos.length === 0) {
-            mostrarErroToast('Informe os códigos dos procedimentos separados por vírgula.')
+            mostrarErroToast('Informe ao menos um código (um por linha ou separados por vírgula).')
             return
         }
 
@@ -1023,14 +1084,15 @@ const Supertabelacidades = () => {
                         <p>Adicionar procedimentos em massa na cidade selecionada</p>
                         <div className='cidade_vazia_form'>
                             <label htmlFor='codigos-adicao-massa'>
-                                IDs de procedimentos separados por vírgula
+                                IDs de procedimentos (um por linha ou separados por vírgula)
                             </label>
                             <textarea
                                 id='codigos-adicao-massa'
                                 rows={3}
                                 value={codigosInicializacaoCidade}
                                 onChange={(event) => setCodigosInicializacaoCidade(event.target.value)}
-                                placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
+                                placeholder={`Ex.: CONS-00N, EXAM-103
+ou um código por linha`}
                             />
                             <button
                                 type='button'
@@ -1293,14 +1355,15 @@ const Supertabelacidades = () => {
                         <p>Nenhum procedimento encontrado para a cidade selecionada.</p>
                         <div className='cidade_vazia_form'>
                             <label htmlFor='codigos-cidade-vazia'>
-                                Preencha os IDs de procedimentos (separados por vírgula)
+                                IDs de procedimentos (um por linha ou separados por vírgula)
                             </label>
                             <textarea
                                 id='codigos-cidade-vazia'
                                 rows={3}
                                 value={codigosInicializacaoCidade}
                                 onChange={(event) => setCodigosInicializacaoCidade(event.target.value)}
-                                placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
+                                placeholder={`Ex.: CONS-00N, EXAM-103
+ou um código por linha`}
                             />
                             <button
                                 type='button'
@@ -1402,7 +1465,7 @@ const Supertabelacidades = () => {
                                             <td>
                                                 <button
                                                     type='button'
-                                                    className='row_delete_btn'
+                                                    className='table_delete_btn'
                                                     onClick={(event) =>
                                                         excluirProcedimento(linha, {
                                                             ignorarConfirmacao: event.shiftKey,
@@ -1419,7 +1482,10 @@ const Supertabelacidades = () => {
                                         <td colSpan={6}>
                                             {categoriaEmInclusao === secao.categoriaId ? (
                                                 <div className='row_add_inline'>
-                                                    <div className='row_add_suggest_wrap'>
+                                                    <div
+                                                        className='row_add_suggest_wrap'
+                                                        ref={categoriaEmInclusao === secao.categoriaId ? sugestoesAnchorRef : null}
+                                                    >
                                                         <input
                                                             type='text'
                                                             className='row_add_input'
@@ -1430,27 +1496,7 @@ const Supertabelacidades = () => {
                                                                 setNovoProcedimentoSelecionadoCodigo('')
                                                             }}
                                                         />
-                                                        <div className='row_add_suggest_list'>
-                                                            {sugestoesFiltradasInclusao.length === 0 ? (
-                                                                <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
-                                                            ) : (
-                                                                sugestoesFiltradasInclusao.map((item) => (
-                                                                    <button
-                                                                        key={`${secao.categoriaId}-${item.codigo}`}
-                                                                        type='button'
-                                                                        className={`row_add_suggest_item ${normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) === normalizarTextoBusca(item.codigo) ? 'is-active' : ''
-                                                                            }`}
-                                                                        onClick={() => {
-                                                                            setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
-                                                                            setNovoProcedimentoSelecionadoCodigo(item.codigo)
-                                                                        }}
-                                                                    >
-                                                                        <span>{item.nome}</span>
-                                                                        <small>{item.codigo}</small>
-                                                                    </button>
-                                                                ))
-                                                            )}
-                                                        </div>
+                                                        {renderSugestoesPortal(secao)}
                                                     </div>
                                                     <button
                                                         type='button'

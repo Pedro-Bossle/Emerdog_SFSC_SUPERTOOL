@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { supabase } from '../../../lib/supabase'
+import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelaplanos.css'
 
 const COLUNAS_PLANO = [
@@ -71,6 +73,8 @@ const Supertabelaplanos = () => {
     const [categoriaEmInclusao, setCategoriaEmInclusao] = useState(null)
     const [textoNovoProcedimento, setTextoNovoProcedimento] = useState('')
     const [novoProcedimentoSelecionadoCodigo, setNovoProcedimentoSelecionadoCodigo] = useState('')
+    const [popupSugestoesStyle, setPopupSugestoesStyle] = useState(null)
+    const sugestoesAnchorRef = useRef(null)
 
     const [mostrarGerenciarModal, setMostrarGerenciarModal] = useState(false)
     const [ordenacaoGerenciador, setOrdenacaoGerenciador] = useState({ coluna: 'nome', direcao: 'asc' })
@@ -513,6 +517,71 @@ const Supertabelaplanos = () => {
             .slice(0, 30)
     }, [categoriaEmInclusao, textoNovoProcedimento, modoLimitacoes, linhasDiferencas, linhasLimitacoes, procedimentos])
 
+    const atualizarPosicaoPopupSugestoes = useCallback(() => {
+        const ancora = sugestoesAnchorRef.current
+        if (!ancora) return
+        const rect = ancora.getBoundingClientRect()
+        setPopupSugestoesStyle({
+            top: rect.bottom + 4,
+            left: rect.left,
+            width: rect.width,
+        })
+    }, [])
+
+    useEffect(() => {
+        if (!categoriaEmInclusao) {
+            setPopupSugestoesStyle(null)
+            return
+        }
+        atualizarPosicaoPopupSugestoes()
+        window.addEventListener('resize', atualizarPosicaoPopupSugestoes)
+        window.addEventListener('scroll', atualizarPosicaoPopupSugestoes, true)
+        return () => {
+            window.removeEventListener('resize', atualizarPosicaoPopupSugestoes)
+            window.removeEventListener('scroll', atualizarPosicaoPopupSugestoes, true)
+        }
+    }, [categoriaEmInclusao, textoNovoProcedimento, sugestoesFiltradasInclusao.length, atualizarPosicaoPopupSugestoes])
+
+    const renderSugestoesPortal = (secao, chaveSufixo = '') => {
+        if (categoriaEmInclusao !== secao.categoriaId) return null
+        if (!popupSugestoesStyle || typeof document === 'undefined') return null
+        return createPortal(
+            <div
+                className='row_add_suggest_list is-portal'
+                style={{
+                    position: 'fixed',
+                    top: `${popupSugestoesStyle.top}px`,
+                    left: `${popupSugestoesStyle.left}px`,
+                    width: `${popupSugestoesStyle.width}px`,
+                }}
+            >
+                {sugestoesFiltradasInclusao.length === 0 ? (
+                    <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
+                ) : (
+                    sugestoesFiltradasInclusao.map((item) => (
+                        <button
+                            key={`${secao.categoriaId}${chaveSufixo}-${item.codigo}`}
+                            type='button'
+                            className={`row_add_suggest_item ${
+                                normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) === normalizarTextoBusca(item.codigo)
+                                    ? 'is-active'
+                                    : ''
+                            }`}
+                            onClick={() => {
+                                setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
+                                setNovoProcedimentoSelecionadoCodigo(item.codigo)
+                            }}
+                        >
+                            <span>{item.nome}</span>
+                            <small>{item.codigo}</small>
+                        </button>
+                    ))
+                )}
+            </div>,
+            document.body
+        )
+    }
+
     const confirmarNovoProcedimentoCategoria = async (categoriaId) => {
         const sugestoes = obterSugestoesProcedimentos(categoriaId)
         const entrada = normalizarTextoBusca(textoNovoProcedimento)
@@ -569,17 +638,10 @@ const Supertabelaplanos = () => {
             return
         }
 
-        const codigos = [
-            ...new Set(
-                codigosInicializacaoPlanos
-                    .split(',')
-                    .map((item) => item.trim().toUpperCase())
-                    .filter(Boolean)
-            ),
-        ]
+        const codigos = extrairCodigosProcedimentoEmMassa(codigosInicializacaoPlanos)
 
         if (codigos.length === 0) {
-            mostrarErroToast('Informe os códigos dos procedimentos separados por vírgula.')
+            mostrarErroToast('Informe ao menos um código (um por linha ou separados por vírgula).')
             return
         }
 
@@ -1404,14 +1466,15 @@ const Supertabelaplanos = () => {
                         </p>
                         <div className='supertabelaplanos_cidade_vazia_form'>
                             <label htmlFor='codigos-adicao-massa-planos'>
-                                Códigos de procedimentos separados por vírgula
+                                Códigos de procedimentos (um por linha ou separados por vírgula)
                             </label>
                             <textarea
                                 id='codigos-adicao-massa-planos'
                                 rows={3}
                                 value={codigosInicializacaoPlanos}
                                 onChange={(e) => setCodigosInicializacaoPlanos(e.target.value)}
-                                placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
+                                placeholder={`Ex.: CONS-00N, EXAM-103
+ou um código por linha`}
                             />
                             <button type='button' className='supertabelaplanos_cidade_vazia_btn' onClick={preencherProcedimentosMassaPlanos}>
                                 Inserir procedimentos em massa
@@ -1759,7 +1822,7 @@ const Supertabelaplanos = () => {
                                                 <td>
                                                     <button
                                                         type='button'
-                                                        className='row_delete_btn'
+                                                        className='table_delete_btn'
                                                         onClick={(event) =>
                                                             excluirProcedimentoCidadePlanos(linha, {
                                                                 ignorarConfirmacao: event.shiftKey,
@@ -1776,7 +1839,10 @@ const Supertabelaplanos = () => {
                                             <td colSpan={7}>
                                                 {categoriaEmInclusao === secao.categoriaId ? (
                                                     <div className='row_add_inline'>
-                                                        <div className='row_add_suggest_wrap'>
+                                                        <div
+                                                            className='row_add_suggest_wrap'
+                                                            ref={categoriaEmInclusao === secao.categoriaId ? sugestoesAnchorRef : null}
+                                                        >
                                                             <input
                                                                 type='text'
                                                                 className='row_add_input'
@@ -1787,31 +1853,7 @@ const Supertabelaplanos = () => {
                                                                     setNovoProcedimentoSelecionadoCodigo('')
                                                                 }}
                                                             />
-                                                            <div className='row_add_suggest_list'>
-                                                                {sugestoesFiltradasInclusao.length === 0 ? (
-                                                                    <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
-                                                                ) : (
-                                                                    sugestoesFiltradasInclusao.map((item) => (
-                                                                        <button
-                                                                            key={`${secao.categoriaId}-${item.codigo}`}
-                                                                            type='button'
-                                                                            className={`row_add_suggest_item ${
-                                                                                normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) ===
-                                                                                normalizarTextoBusca(item.codigo)
-                                                                                    ? 'is-active'
-                                                                                    : ''
-                                                                            }`}
-                                                                            onClick={() => {
-                                                                                setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
-                                                                                setNovoProcedimentoSelecionadoCodigo(item.codigo)
-                                                                            }}
-                                                                        >
-                                                                            <span>{item.nome}</span>
-                                                                            <small>{item.codigo}</small>
-                                                                        </button>
-                                                                    ))
-                                                                )}
-                                                            </div>
+                                                            {renderSugestoesPortal(secao)}
                                                         </div>
                                                         <button
                                                             type='button'
@@ -1931,7 +1973,7 @@ const Supertabelaplanos = () => {
                                                 <td>
                                                     <button
                                                         type='button'
-                                                        className='row_delete_btn'
+                                                        className='table_delete_btn'
                                                         onClick={(event) =>
                                                             excluirPlanoConfigRow(linha, {
                                                                 ignorarConfirmacao: event.shiftKey,
@@ -1948,7 +1990,10 @@ const Supertabelaplanos = () => {
                                             <td colSpan={5}>
                                                 {categoriaEmInclusao === secao.categoriaId ? (
                                                     <div className='row_add_inline'>
-                                                        <div className='row_add_suggest_wrap'>
+                                                        <div
+                                                            className='row_add_suggest_wrap'
+                                                            ref={categoriaEmInclusao === secao.categoriaId ? sugestoesAnchorRef : null}
+                                                        >
                                                             <input
                                                                 type='text'
                                                                 className='row_add_input'
@@ -1959,31 +2004,7 @@ const Supertabelaplanos = () => {
                                                                     setNovoProcedimentoSelecionadoCodigo('')
                                                                 }}
                                                             />
-                                                            <div className='row_add_suggest_list'>
-                                                                {sugestoesFiltradasInclusao.length === 0 ? (
-                                                                    <div className='row_add_suggest_empty'>Nenhum procedimento disponível</div>
-                                                                ) : (
-                                                                    sugestoesFiltradasInclusao.map((item) => (
-                                                                        <button
-                                                                            key={`${secao.categoriaId}-lim-${item.codigo}`}
-                                                                            type='button'
-                                                                            className={`row_add_suggest_item ${
-                                                                                normalizarTextoBusca(novoProcedimentoSelecionadoCodigo) ===
-                                                                                normalizarTextoBusca(item.codigo)
-                                                                                    ? 'is-active'
-                                                                                    : ''
-                                                                            }`}
-                                                                            onClick={() => {
-                                                                                setTextoNovoProcedimento(`${item.nome} - ${item.codigo}`)
-                                                                                setNovoProcedimentoSelecionadoCodigo(item.codigo)
-                                                                            }}
-                                                                        >
-                                                                            <span>{item.nome}</span>
-                                                                            <small>{item.codigo}</small>
-                                                                        </button>
-                                                                    ))
-                                                                )}
-                                                            </div>
+                                                            {renderSugestoesPortal(secao, '-lim')}
                                                         </div>
                                                         <button
                                                             type='button'

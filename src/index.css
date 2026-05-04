@@ -27,6 +27,110 @@ body {
     background-color: var(--bg-page);
 }
 
+
+
+@media (prefers-reduced-motion: reduce) {
+    body,
+    .table_main,
+    .table_main td,
+    .table_main th,
+    .table_header,
+    .categoria_secao,
+    .manager_modal,
+    .sidebar,
+    .header_nav,
+    .home_card,
+    input,
+    select,
+    textarea,
+    button {
+        transition: none !important;
+    }
+}
+
+/* Estilo base unificado para todas as tabelas principais */
+.table_main {
+    width: 100%;
+    border-collapse: collapse;
+    border-radius: 10px;
+    overflow: hidden;
+    table-layout: fixed;
+    border: 1px solid #dbe9f2;
+    background: #ffffff;
+}
+
+.table_main td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #e8f1f7;
+    font-size: 0.92rem;
+    color: #556778;
+}
+
+.table_main th {
+    padding: 8px 10px;
+    cursor: pointer;
+    background: #edf5fb;
+    font-weight: 700;
+    font-size: 0.84rem;
+    color: #3c5367;
+    border-bottom: 1px solid #d6e5ef;
+    border-right: 1px solid #d6e5ef;
+}
+
+.table_main th:last-child {
+    border-right: none;
+}
+
+.table_main tbody tr:nth-child(even) {
+    background: #f9fcff;
+}
+
+.table_main tbody tr.table_row_even {
+    background: #f9fcff;
+}
+
+.table_main tbody tr:hover {
+    background: #eef7fd;
+}
+
+.table_main tbody tr.table_row_even:hover {
+    background: #eef7fd;
+}
+
+.table_custo_negativo {
+    color: #1f8f4c;
+    font-weight: 600;
+}
+
+.table_header {
+    user-select: none;
+}
+
+.table_delete_btn {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.05rem;
+    line-height: 1;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: #7a2323;
+    transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.table_delete_btn:hover {
+    background: #ffe4e4;
+}
+
+.table_delete_btn:active {
+    transform: scale(0.96);
+}
+
+.table_delete_btn:focus-visible {
+    outline: 2px solid #d36b6b;
+    outline-offset: 2px;
+}
+
 body.dark-mode {
     --azul-escuro: #d8e8f8;
     --azul-claro: #20374f;
@@ -50,9 +154,19 @@ body.dark-mode .manager_modal,
 body.dark-mode .supertabelacidades_new_form,
 body.dark-mode .supertabelacidades_filters,
 body.dark-mode .table_main tbody tr:nth-child(even),
+body.dark-mode .row_add_line,
 body.dark-mode .row_add_line td {
     background: var(--bg-surface);
 }
+
+body.dark-mode .table_main tbody tr:nth-child(odd) {
+    background: #16293f;
+}
+
+body.dark-mode .table_main tbody tr.table_row_even {
+    background: var(--bg-surface);
+}
+
 
 body.dark-mode .table_main td,
 body.dark-mode .table_main th,
@@ -62,6 +176,15 @@ body.dark-mode .categoria_secao,
 body.dark-mode .supertabelacidades_filters,
 body.dark-mode .manager_modal {
     border-color: var(--border-soft);
+}
+
+body.dark-mode .table_main td {
+    color: #dce7f2;
+}
+
+/* Especificidade acima de body.dark-mode .table_main td para custo negativo */
+body.dark-mode .table_main td.table_custo_negativo {
+    color: #78e09f;
 }
 
 body.dark-mode input,
@@ -79,13 +202,30 @@ body.dark-mode .row_add_btn:hover {
     background: #17314a;
 }
 
+body.dark-mode .table_main tbody tr.table_row_even:hover {
+    background: #17314a;
+}
+
 body.dark-mode .row_add_btn {
-    background: #0d2336;
-    color: #778088;
+    background: #1f7a49;
+    border-color: #2da55f;
+    color: #e9fff1;
 }
 
 body.dark-mode .row_add_btn:hover {
-    color: #cee7ff;
+    background: #238a53;
+    color: #f2fff7;
+}
+
+body.dark-mode .row_add_cancel_btn {
+    background: #1b2b3b;
+    border-color: #4f6479;
+    color: #d4e0ec;
+}
+
+body.dark-mode .row_add_cancel_btn:hover {
+    background: #25384b;
+    color: #e8f1fb;
 }
 
 /* Ajuste de contraste para sidebar, filtros e cabeçalhos de tabela */
@@ -112,7 +252,9 @@ body.dark-mode .sidebar_footer {
 
 body.dark-mode .supertabelamain_filters,
 body.dark-mode .supertabelacidades_filters,
-body.dark-mode .supertabelaplanos_filters {
+body.dark-mode .supertabelaplanos_filters,
+body.dark-mode .supertabelaprocedimentos_filters,
+body.dark-mode .supertabelanegociacoes_filters {
     background: #182e44;
     border-color: #3b5a77;
     box-shadow: 0 6px 18px rgba(3, 10, 18, 0.35);
@@ -122,7 +264,12 @@ body.dark-mode .supertabelamain_filters_checkbox_wrap,
 body.dark-mode .supertabelacidades_edit_wrap,
 body.dark-mode .supertabelacidades_action_btn,
 body.dark-mode .supertabelaplanos_edit_wrap,
-body.dark-mode .supertabelaplanos_action_btn {
+body.dark-mode .supertabelaplanos_action_btn,
+body.dark-mode .supertabelaprocedimentos_edit_wrap,
+body.dark-mode .supertabelaprocedimentos_action_btn,
+body.dark-mode .supertabelanegociacoes_edit_wrap,
+body.dark-mode .supertabelanegociacoes_action_btn,
+body.dark-mode .supertabelanegociacoes_back_btn {
     background: #274158;
     border-color: #557593;
     color: #edf5fd;
@@ -152,15 +299,19 @@ body.dark-mode .supertabelaplanos_filter_mode_label {
 }
 
 body.dark-mode .supertabelaplanos_th_plan {
-    color: #9ec5e0;
+    color: #1d6498;
 }
 
 body.dark-mode .supertabelaplanos .table_cell_readonly {
     color: #8aa4bc;
 }
 
-body.dark-mode .supertabelaplanos .row_delete_btn:hover {
+body.dark-mode .table_delete_btn:hover {
     background: #3a2430;
+}
+
+body.dark-mode .table_delete_btn {
+    color: #ffb0b0;
 }
 
 body.dark-mode .supertabelaplanos_alert {
@@ -191,6 +342,113 @@ body.dark-mode .supertabelaplanos_confirm_btn.danger {
     border-color: #8a5558;
 }
 
+body.dark-mode .supertabelaprocedimentos_massa_wrap {
+    background: #182e44;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .supertabelaprocedimentos_massa_wrap p,
+body.dark-mode .supertabelaprocedimentos_massa_form label {
+    color: #e6f0fa;
+}
+
+body.dark-mode .supertabelaprocedimentos_massa_form textarea {
+    background: #0f1e2e;
+    color: #e6f0fa;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .supertabelaprocedimentos_massa_btn {
+    background: #274862;
+    color: #e6f0fa;
+    border-color: #5b82a4;
+}
+
+body.dark-mode .supertabelaprocedimentos_massa_btn:hover {
+    background: #2f5678;
+}
+
+body.dark-mode .supertabelaprocedimentos_alert {
+    background: linear-gradient(180deg, #1a3248 0%, #152a3d 100%);
+    border-color: #4b7aa3;
+}
+
+body.dark-mode .supertabelaprocedimentos_alert_close {
+    background: #213b54;
+    color: #e9f3fc;
+    border-color: #4a6987;
+}
+
+body.dark-mode .supertabelaprocedimentos_confirm_toast {
+    background: linear-gradient(180deg, #2a1f24 0%, #241a1d 100%);
+    border-color: #6b4548;
+}
+
+body.dark-mode .supertabelaprocedimentos_confirm_btn {
+    background: #213b54;
+    color: #e6f1fb;
+    border-color: #557696;
+}
+
+body.dark-mode .supertabelaprocedimentos_confirm_btn.danger {
+    background: #3d2528;
+    color: #ffc9c9;
+    border-color: #8a5558;
+}
+
+body.dark-mode .supertabelanegociacoes_form_box {
+    background: #182e44;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .supertabelanegociacoes_form_box h3,
+body.dark-mode .supertabelanegociacoes_form_grid label span,
+body.dark-mode .supertabelanegociacoes_form_full span {
+    color: #e6f0fa;
+}
+
+body.dark-mode .supertabelanegociacoes_form_grid input,
+body.dark-mode .supertabelanegociacoes_form_grid select,
+body.dark-mode .supertabelanegociacoes_form_full textarea {
+    background: #0f1e2e;
+    color: #e6f0fa;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .supertabelanegociacoes_action_btn.secondary {
+    background: #213b54;
+    color: #e6f1fb;
+    border-color: #557696;
+}
+
+body.dark-mode .supertabelanegociacoes_alert {
+    background: linear-gradient(180deg, #1a3248 0%, #152a3d 100%);
+    border-color: #4b7aa3;
+}
+
+body.dark-mode .supertabelanegociacoes_alert_close {
+    background: #213b54;
+    color: #e9f3fc;
+    border-color: #4a6987;
+}
+
+body.dark-mode .supertabelanegociacoes_confirm_toast {
+    background: linear-gradient(180deg, #2a1f24 0%, #241a1d 100%);
+    border-color: #6b4548;
+}
+
+body.dark-mode .supertabelanegociacoes_confirm_btn {
+    background: #213b54;
+    color: #e6f1fb;
+    border-color: #557696;
+}
+
+body.dark-mode .supertabelanegociacoes_confirm_btn.danger {
+    background: #3d2528;
+    color: #ffc9c9;
+    border-color: #8a5558;
+}
+
 body.dark-mode .supertabelamain_filters_checkbox_wrap span,
 body.dark-mode .supertabelacidades_edit_wrap span {
     color: #edf5fd;
@@ -203,7 +461,9 @@ body.dark-mode .supertabelacidades_edit_wrap input {
 
 body.dark-mode .supertabelamain_header.is-compact,
 body.dark-mode .supertabelacidades_header.is-compact,
-body.dark-mode .supertabelaplanos_header.is-compact {
+body.dark-mode .supertabelaplanos_header.is-compact,
+body.dark-mode .supertabelaprocedimentos_header.is-compact,
+body.dark-mode .supertabelanegociacoes_header.is-compact {
     background: rgba(14, 27, 42, 0.75);
 }
 
