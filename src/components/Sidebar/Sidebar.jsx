@@ -48,9 +48,8 @@ const menuItems = [
         id: 'credenciamento',
         label: 'Credenciamento',
         children: [
-            { label: 'Processos', href: '/credenciamento/processos' },
-            { label: 'Resumos', href: '/credenciamento/resumos' },
-            { label: 'Documentação', href: '#' },
+            { label: 'Principal', href: '/credenciamento/principal' },
+            { label: 'Documentação', href: '/credenciamentodoc' },
 
         ],
     },

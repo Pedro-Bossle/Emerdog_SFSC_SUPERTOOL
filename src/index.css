@@ -30,6 +30,7 @@ body {
 
 
 @media (prefers-reduced-motion: reduce) {
+
     body,
     .table_main,
     .table_main td,
@@ -133,7 +134,7 @@ body {
 
 body.dark-mode {
     --azul-escuro: #d8e8f8;
-    --azul-claro: #20374f;
+    --azul-claro: #E7F4FC;
     --azul-destaque: #7fc0f0;
     --cinza-medio: #b6c5d3;
     --cinza-claro: #38526c;
@@ -157,6 +158,19 @@ body.dark-mode .table_main tbody tr:nth-child(even),
 body.dark-mode .row_add_line,
 body.dark-mode .row_add_line td {
     background: var(--bg-surface);
+}
+
+body.dark-mode .supertabelanegociacoes_paginacao,
+body.dark-mode  .supertabelaplanos_cidade_vazia_wrap {
+    background: var(--bg-surface);
+}
+
+body.dark-mode .supertabelanegociacoes_paginacao_info,
+body.dark-mode .supertabelanegociacoes_paginacao_page,
+body.dark-mode .supertabelaplanos_cidade_vazia_wrap p,
+body.dark-mode .supertabelaplanos_cidade_vazia_wrap label {
+    color: var(--azul-claro);
+
 }
 
 body.dark-mode .table_main tbody tr:nth-child(odd) {
@@ -254,7 +268,8 @@ body.dark-mode .supertabelamain_filters,
 body.dark-mode .supertabelacidades_filters,
 body.dark-mode .supertabelaplanos_filters,
 body.dark-mode .supertabelaprocedimentos_filters,
-body.dark-mode .supertabelanegociacoes_filters {
+body.dark-mode .supertabelanegociacoes_filters,
+body.dark-mode .credenciamento_main_filters {
     background: #182e44;
     border-color: #3b5a77;
     box-shadow: 0 6px 18px rgba(3, 10, 18, 0.35);
@@ -269,7 +284,8 @@ body.dark-mode .supertabelaprocedimentos_edit_wrap,
 body.dark-mode .supertabelaprocedimentos_action_btn,
 body.dark-mode .supertabelanegociacoes_edit_wrap,
 body.dark-mode .supertabelanegociacoes_action_btn,
-body.dark-mode .supertabelanegociacoes_back_btn {
+body.dark-mode .supertabelanegociacoes_back_btn,
+body.dark-mode .credenciamento_main_action_btn {
     background: #274158;
     border-color: #557593;
     color: #edf5fd;
@@ -463,8 +479,80 @@ body.dark-mode .supertabelamain_header.is-compact,
 body.dark-mode .supertabelacidades_header.is-compact,
 body.dark-mode .supertabelaplanos_header.is-compact,
 body.dark-mode .supertabelaprocedimentos_header.is-compact,
-body.dark-mode .supertabelanegociacoes_header.is-compact {
+body.dark-mode .supertabelanegociacoes_header.is-compact,
+body.dark-mode .credenciamento_main_header.is-compact {
     background: rgba(14, 27, 42, 0.75);
+}
+
+body.dark-mode .credenciamento_main_paginacao {
+    background: var(--bg-surface);
+}
+
+body.dark-mode .credenciamento_main_paginacao_info,
+body.dark-mode .credenciamento_main_paginacao_page,
+body.dark-mode .credenciamento_main_paginacao_label {
+    color: var(--azul-claro);
+}
+
+body.dark-mode .credenciamento_main_action_btn.secondary {
+    background: #213b54;
+    color: #e6f1fb;
+    border-color: #557696;
+}
+
+body.dark-mode .credenciamento_main_alert {
+    background: linear-gradient(180deg, #1a3248 0%, #152a3d 100%);
+    border-color: #4b7aa3;
+}
+
+body.dark-mode .credenciamento_main_alert button {
+    background: #213b54;
+    color: #e9f3fc;
+    border-color: #4a6987;
+}
+
+body.dark-mode .credenciamento_modal {
+    background: #182e44;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .credenciamento_modal h3,
+body.dark-mode .credenciamento_modal_grid label span,
+body.dark-mode .credenciamento_modal_full span,
+body.dark-mode .credenciamento_modal_checks label {
+    color: #e6f0fa;
+}
+
+body.dark-mode .credenciamento_modal_grid input,
+body.dark-mode .credenciamento_modal_grid select,
+body.dark-mode .credenciamento_modal_grid textarea {
+    background: #0f1e2e;
+    color: #e6f0fa;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .credenciamento_modal_sugestoes {
+    background: #14283b;
+    border-color: #3f5f7c;
+}
+
+body.dark-mode .credenciamento_modal_sugestoes button {
+    color: #e6f0fa;
+    border-bottom-color: #2e4e6a;
+}
+
+body.dark-mode .credenciamento_modal_sugestoes button:hover {
+    background: #203b54;
+}
+
+body.dark-mode .credenciamento_modal_tag {
+    background: #274862;
+    border-color: #5b82a4;
+    color: #dbeeff;
+}
+
+body.dark-mode .credenciamento_modal_tag button {
+    color: #dbeeff;
 }
 
 body.dark-mode .table_header,

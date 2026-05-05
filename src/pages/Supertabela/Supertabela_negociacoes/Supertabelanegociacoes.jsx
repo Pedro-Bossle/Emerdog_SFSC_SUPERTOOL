@@ -1210,7 +1210,7 @@ const Supertabelanegociacoes = () => {
 
     return (
         <div className='supertabelanegociacoes'>
-            <h1>Supertabela</h1>
+            <h1>Supertabela - Negociações</h1>
             <hr />
 
             <header className={`supertabelanegociacoes_header ${headerCompacto ? 'is-compact' : ''}`}>

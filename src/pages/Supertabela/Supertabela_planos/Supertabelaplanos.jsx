@@ -1344,7 +1344,7 @@ const Supertabelaplanos = () => {
 
     return (
         <div className='supertabelaplanos'>
-            <h1>Supertabela</h1>
+            <h1>Supertabela - Planos</h1>
             <hr />
             <header className={`supertabelaplanos_header ${headerCompacto ? 'is-compact' : ''}`}>
                 <h2>Filtros</h2>

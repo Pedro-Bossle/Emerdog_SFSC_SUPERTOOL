@@ -20,7 +20,7 @@ const NotFound = () => {
                     </div>
                     <div className='nf_card'>
                         <h2 className='nf_card_nome'>Credenciamento</h2>
-                        <Link className='nf_card_link' to="/credenciamento">Acessar</Link>
+                        <Link className='nf_card_link' to="/credenciamento/principal">Acessar</Link>
                     </div>
                     <div className='nf_card'>
                         <h2 className='nf_card_nome'>Formulários</h2>

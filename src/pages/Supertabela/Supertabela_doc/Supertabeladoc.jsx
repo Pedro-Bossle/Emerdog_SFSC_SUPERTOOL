@@ -27,7 +27,7 @@ const Supertabeladoc = () => {
 
     return (
         <div className='documentation'>
-            <h1>Supertabela</h1>
+            <h1>Supertabela - Documentação</h1>
             <div>
                 <h2>Por que Existe?</h2>
                 <p>Criada para unificar as tabelas das regiões, negociações e planos todas em uma unica ferramenta, montada a partir de abas individuais de excel que se relacionavam entre si, impedindo a perda de dados e a inconsistência de informações.</p>

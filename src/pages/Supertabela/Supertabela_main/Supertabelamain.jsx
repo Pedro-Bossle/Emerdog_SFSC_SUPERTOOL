@@ -885,7 +885,7 @@ const Supertabelamain = () => {
 
     return (
         <div className='supertabelamain'>
-            <h1>Supertabela</h1>
+            <h1>Supertabela - Visão Geral</h1>
             <hr />
             <header
                 className='supertabelamain_header'
