@@ -51,7 +51,7 @@ const Home = () => {
         <div className='home_card'>
           <h2 className='card_nome'>Credenciamento</h2>
           <p className='card_texto'>Mantenha o processo de credenciamento dos parceiros a um toque de distância;</p>
-          <a className='card_link' href="https://emerdogplano-my.sharepoint.com/:x:/g/personal/arthur_emerdog_com_br/IQApezclMryBQYVYhYYZlwfnAdrFK2vwN8J1WgQ_a_hGAEo?e=H8Ht99">Conheça essa Ferramenta</a>
+          <a className='card_link' href="/Credenciamentodoc">Conheça essa Ferramenta</a>
         </div>
 
         <div className='home_card'>

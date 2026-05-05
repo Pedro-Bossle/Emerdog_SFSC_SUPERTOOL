@@ -40,8 +40,8 @@ const Header = () => {
             <nav className='header_nav'>
                 <img src={darkModeAtivo ? logoBranco : logoNav} alt="Emerdog" className='logo logo_header' />
                 <Link className='header_nav_link' to="/home">Início</Link>
-                <Link className='header_nav_link' to="/supertabeladoc">Super-Tabela</Link>
-                <a className='header_nav_link' href="#">Credenciamento</a>
+                <Link className='header_nav_link' to="/supertabelamain">Super-Tabela</Link>
+                <Link className='header_nav_link' to="/credenciamento/principal">Credenciamento</Link>
                 <a className='header_nav_link' href="#">Formulário</a>
                 <a className='header_nav_link' href="#">Planos</a>
                 <a className='header_nav_link' href="#">Contratos</a>
