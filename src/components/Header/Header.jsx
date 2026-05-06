@@ -4,7 +4,7 @@ import logoNav from '../../assets/Emerdog-logo-nav.svg'
 import logoBranco from '../../assets/logo_branco.png'
 
 
-import { supabase } from '../../lib/supabase' // ajuste o caminho se necessário
+import { supabase, setReadOnlyFlag } from '../../lib/supabase' // ajuste o caminho se necessário
 import { Link, useNavigate } from 'react-router-dom'
 
 
@@ -32,6 +32,7 @@ const Header = () => {
             alert('Erro ao sair da sessão')
             return
         }
+        setReadOnlyFlag(false)
         navigate('/', { replace: true })
     }
 

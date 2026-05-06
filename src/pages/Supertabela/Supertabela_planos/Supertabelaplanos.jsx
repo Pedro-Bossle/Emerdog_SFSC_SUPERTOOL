@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { supabase } from '../../../lib/supabase'
+import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelaplanos.css'
 
@@ -46,6 +46,7 @@ const mapearPlanosPorChave = (planos) => {
 }
 
 const Supertabelaplanos = () => {
+    const [somenteLeitura] = useState(() => getReadOnlyFlag())
     const [cidades, setCidades] = useState([])
     const [regioes, setRegioes] = useState([])
     const [planos, setPlanos] = useState([])
@@ -1381,35 +1382,41 @@ const Supertabelaplanos = () => {
                         </div>
                     )}
 
-                    <button
-                        type='button'
-                        className='supertabelaplanos_action_btn'
-                        onClick={() => {
-                            setMostrarGerenciarModal(true)
-                            setCidadeDuplicarOrigem(null)
-                            setNovoNomeCidadeDuplicada('')
-                        }}
-                    >
-                        <span className='supertabelaplanos_action_btn_ico'>⚙️</span> Gerenciar tabelas
-                    </button>
+                    {!somenteLeitura && (
+                        <button
+                            type='button'
+                            className='supertabelaplanos_action_btn'
+                            onClick={() => {
+                                setMostrarGerenciarModal(true)
+                                setCidadeDuplicarOrigem(null)
+                                setNovoNomeCidadeDuplicada('')
+                            }}
+                        >
+                            <span className='supertabelaplanos_action_btn_ico'>⚙️</span> Gerenciar tabelas
+                        </button>
+                    )}
 
-                    <label className='supertabelaplanos_edit_wrap'>
-                        <input
-                            type='checkbox'
-                            checked={edicaoAtiva}
-                            onChange={(e) => setEdicaoAtiva(e.target.checked)}
-                        />
-                        <span>Ativar edição</span>
-                    </label>
+                    {!somenteLeitura && (
+                        <label className='supertabelaplanos_edit_wrap'>
+                            <input
+                                type='checkbox'
+                                checked={edicaoAtiva}
+                                onChange={(e) => setEdicaoAtiva(e.target.checked)}
+                            />
+                            <span>Ativar edição</span>
+                        </label>
+                    )}
 
-                    <label className='supertabelaplanos_edit_wrap'>
-                        <input
-                            type='checkbox'
-                            checked={adicaoMassaAtiva}
-                            onChange={(e) => setAdicaoMassaAtiva(e.target.checked)}
-                        />
-                        <span>Adição em massa</span>
-                    </label>
+                    {!somenteLeitura && (
+                        <label className='supertabelaplanos_edit_wrap'>
+                            <input
+                                type='checkbox'
+                                checked={adicaoMassaAtiva}
+                                onChange={(e) => setAdicaoMassaAtiva(e.target.checked)}
+                            />
+                            <span>Adição em massa</span>
+                        </label>
+                    )}
 
                     <div className='supertabelaplanos_filter_item supertabelaplanos_filter_mode'>
                         <p className='supertabelaplanos_filter_mode_label'>Visualização</p>
@@ -1532,14 +1539,16 @@ ou um código por linha`}
                         <div className='manager_modal_header'>
                             <h3>Gerenciar tabelas</h3>
                             <div className='manager_header_actions'>
-                                <button
-                                    type='button'
-                                    className='manager_add_city_btn'
-                                    onClick={abrirAdicionarCidade}
-                                    title='Adicionar nova cidade'
-                                >
-                                    ＋ Nova cidade
-                                </button>
+                                {!somenteLeitura && (
+                                    <button
+                                        type='button'
+                                        className='manager_add_city_btn'
+                                        onClick={abrirAdicionarCidade}
+                                        title='Adicionar nova cidade'
+                                    >
+                                        ＋ Nova cidade
+                                    </button>
+                                )}
                                 <button
                                     type='button'
                                     className='manager_close_btn'
@@ -1698,18 +1707,20 @@ ou um código por linha`}
                                                     >
                                                         📄
                                                     </button>
-                                                    <button
-                                                        type='button'
-                                                        className='manager_icon_btn danger'
-                                                        onClick={(event) =>
-                                                            excluirCidadeNoGerenciador(cidade, {
-                                                                ignorarConfirmacao: event.shiftKey,
-                                                            })
-                                                        }
-                                                        title='Excluir tabela'
-                                                    >
-                                                        🗑️
-                                                    </button>
+                                                    {!somenteLeitura && (
+                                                        <button
+                                                            type='button'
+                                                            className='manager_icon_btn danger'
+                                                            onClick={(event) =>
+                                                                excluirCidadeNoGerenciador(cidade, {
+                                                                    ignorarConfirmacao: event.shiftKey,
+                                                                })
+                                                            }
+                                                            title='Excluir tabela'
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1819,20 +1830,22 @@ ou um código por linha`}
                                                         </td>
                                                     )
                                                 })}
-                                                <td>
-                                                    <button
-                                                        type='button'
-                                                        className='table_delete_btn'
-                                                        onClick={(event) =>
-                                                            excluirProcedimentoCidadePlanos(linha, {
-                                                                ignorarConfirmacao: event.shiftKey,
-                                                            })
-                                                        }
-                                                        title='Excluir proc., SHIFT = Excluir rápido'
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
+                                                {!somenteLeitura && (
+                                                    <td>
+                                                        <button
+                                                            type='button'
+                                                            className='table_delete_btn'
+                                                            onClick={(event) =>
+                                                                excluirProcedimentoCidadePlanos(linha, {
+                                                                    ignorarConfirmacao: event.shiftKey,
+                                                                })
+                                                            }
+                                                            title='Excluir proc., SHIFT = Excluir rápido'
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                         <tr className='row_add_line'>
@@ -1874,7 +1887,7 @@ ou um código por linha`}
                                                             Cancelar
                                                         </button>
                                                     </div>
-                                                ) : (
+                                                ) : !somenteLeitura ? (
                                                     <button
                                                         type='button'
                                                         className='row_add_btn'
@@ -1886,7 +1899,8 @@ ou um código por linha`}
                                                     >
                                                         ＋ Adicionar procedimento nesta categoria
                                                     </button>
-                                                )}
+                                                ) : null
+                                                }
                                             </td>
                                         </tr>
                                     </tbody>
@@ -1970,20 +1984,22 @@ ou um código por linha`}
                                                         <span>{linha.carencia || '\u00a0'}</span>
                                                     )}
                                                 </td>
-                                                <td>
-                                                    <button
-                                                        type='button'
-                                                        className='table_delete_btn'
-                                                        onClick={(event) =>
-                                                            excluirPlanoConfigRow(linha, {
-                                                                ignorarConfirmacao: event.shiftKey,
-                                                            })
-                                                        }
-                                                        title='Excluir registro, SHIFT = Excluir rápido'
-                                                    >
-                                                        🗑️
-                                                    </button>
-                                                </td>
+                                                {!somenteLeitura && (
+                                                    <td>
+                                                        <button
+                                                            type='button'
+                                                            className='table_delete_btn'
+                                                            onClick={(event) =>
+                                                                excluirPlanoConfigRow(linha, {
+                                                                    ignorarConfirmacao: event.shiftKey,
+                                                                })
+                                                            }
+                                                            title='Excluir registro, SHIFT = Excluir rápido'
+                                                        >
+                                                            🗑️
+                                                        </button>
+                                                    </td>
+                                                )}
                                             </tr>
                                         ))}
                                         <tr className='row_add_line'>
@@ -2025,7 +2041,7 @@ ou um código por linha`}
                                                             Cancelar
                                                         </button>
                                                     </div>
-                                                ) : (
+                                                ) : !somenteLeitura ? (
                                                     <button
                                                         type='button'
                                                         className='row_add_btn'
@@ -2037,7 +2053,8 @@ ou um código por linha`}
                                                     >
                                                         ＋ Adicionar procedimento nesta categoria
                                                     </button>
-                                                )}
+                                                ) : null
+                                                }
                                             </td>
                                         </tr>
                                     </tbody>

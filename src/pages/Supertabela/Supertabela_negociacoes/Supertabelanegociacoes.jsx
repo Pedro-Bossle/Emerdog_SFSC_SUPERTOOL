@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { supabase } from '../../../lib/supabase'
+import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelanegociacoes.css'
 
@@ -91,6 +91,7 @@ const normalizarNumeroEntrada = (valorTexto) => {
 }
 
 const Supertabelanegociacoes = () => {
+    const [somenteLeitura] = useState(() => getReadOnlyFlag())
     const [cidades, setCidades] = useState([])
     const [planos, setPlanos] = useState([])
     const [portes, setPortes] = useState([])
@@ -1228,13 +1229,15 @@ const Supertabelanegociacoes = () => {
                                 onChange={(event) => setTermoBuscaLista(event.target.value)}
                             />
                         </div>
-                        <button
-                            type='button'
-                            className='supertabelanegociacoes_action_btn'
-                            onClick={() => setMostrarNovoForm((anterior) => !anterior)}
-                        >
-                            ＋ Adicionar novo
-                        </button>
+                        {!somenteLeitura && (
+                            <button
+                                type='button'
+                                className='supertabelanegociacoes_action_btn'
+                                onClick={() => setMostrarNovoForm((anterior) => !anterior)}
+                            >
+                                ＋ Adicionar novo
+                            </button>
+                        )}
                     </div>
                 ) : (
                     <div className='supertabelanegociacoes_filters'>
@@ -1272,22 +1275,26 @@ const Supertabelanegociacoes = () => {
                         >
                             Gerenciar
                         </button>
-                        <label className='supertabelanegociacoes_edit_wrap'>
-                            <input
-                                type='checkbox'
-                                checked={edicaoAtiva}
-                                onChange={(event) => setEdicaoAtiva(event.target.checked)}
-                            />
-                            <span>Habilitar edição</span>
-                        </label>
-                        <label className='supertabelanegociacoes_edit_wrap'>
-                            <input
-                                type='checkbox'
-                                checked={inclusaoMassaAtiva}
-                                onChange={(event) => setInclusaoMassaAtiva(event.target.checked)}
-                            />
-                            <span>Inclusão em massa</span>
-                        </label>
+                        {!somenteLeitura && (
+                            <label className='supertabelanegociacoes_edit_wrap'>
+                                <input
+                                    type='checkbox'
+                                    checked={edicaoAtiva}
+                                    onChange={(event) => setEdicaoAtiva(event.target.checked)}
+                                />
+                                <span>Habilitar edição</span>
+                            </label>
+                        )}
+                        {!somenteLeitura && (
+                            <label className='supertabelanegociacoes_edit_wrap'>
+                                <input
+                                    type='checkbox'
+                                    checked={inclusaoMassaAtiva}
+                                    onChange={(event) => setInclusaoMassaAtiva(event.target.checked)}
+                                />
+                                <span>Inclusão em massa</span>
+                            </label>
+                        )}
                         <div className='supertabelanegociacoes_filter_item supertabelanegociacoes_filter_pill'>
                             <p>Custos</p>
                             <button
@@ -2157,7 +2164,7 @@ ou um código por linha`}
                                                     Cancelar
                                                 </button>
                                             </div>
-                                        ) : (
+                                        ) : !somenteLeitura ? (
                                             <button
                                                 type='button'
                                                 className='row_add_btn'
@@ -2169,7 +2176,8 @@ ou um código por linha`}
                                             >
                                                 ＋ Adicionar procedimento nesta categoria
                                             </button>
-                                        )}
+                                        ) : null
+                                        }
                                     </div>
                                 </section>
                             )

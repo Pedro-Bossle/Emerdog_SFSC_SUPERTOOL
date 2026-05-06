@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../../../lib/supabase'
+import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import '../Supertabela_main/Supertabelamain.css'
 import './Supertabelaprocedimentos.css'
 
@@ -57,6 +57,7 @@ const Supertabelaprocedimentos = () => {
     const ALTURA_LINHA_TABELA = 42
     const MAX_LINHAS_VISIVEIS = 10
     const LINHAS_OVERSCAN = 6
+    const [somenteLeitura] = useState(() => getReadOnlyFlag())
 
     const [planos, setPlanos] = useState([])
     const [categorias, setCategorias] = useState([])
@@ -601,23 +602,27 @@ const Supertabelaprocedimentos = () => {
                         />
                     </div>
 
-                    <label className='supertabelaprocedimentos_edit_wrap'>
-                        <input
-                            type='checkbox'
-                            checked={edicaoAtiva}
-                            onChange={(event) => setEdicaoAtiva(event.target.checked)}
-                        />
-                        <span>Ativar edição</span>
-                    </label>
+                    {!somenteLeitura && (
+                        <label className='supertabelaprocedimentos_edit_wrap'>
+                            <input
+                                type='checkbox'
+                                checked={edicaoAtiva}
+                                onChange={(event) => setEdicaoAtiva(event.target.checked)}
+                            />
+                            <span>Ativar edição</span>
+                        </label>
+                    )}
 
-                    <label className='supertabelaprocedimentos_edit_wrap'>
-                        <input
-                            type='checkbox'
-                            checked={adicionarNovoAtivo}
-                            onChange={(event) => setAdicionarNovoAtivo(event.target.checked)}
-                        />
-                        <span>Adicionar novo</span>
-                    </label>
+                    {!somenteLeitura && (
+                        <label className='supertabelaprocedimentos_edit_wrap'>
+                            <input
+                                type='checkbox'
+                                checked={adicionarNovoAtivo}
+                                onChange={(event) => setAdicionarNovoAtivo(event.target.checked)}
+                            />
+                            <span>Adicionar novo</span>
+                        </label>
+                    )}
                 </div>
 
                 {adicionarNovoAtivo && (
@@ -836,18 +841,20 @@ const Supertabelaprocedimentos = () => {
                                                 '-'
                                             )}
                                         </td>
-                                        <td>
-                                            <button
-                                                type='button'
-                                                className='table_delete_btn'
-                                                onClick={(event) =>
-                                                    excluirProcedimento(linha, { ignorarConfirmacao: event.shiftKey })
-                                                }
-                                                title='Excluir procedimento, SHIFT = Excluir rápido'
-                                            >
-                                                🗑️
-                                            </button>
-                                        </td>
+                                        {!somenteLeitura && (
+                                            <td>
+                                                <button
+                                                    type='button'
+                                                    className='table_delete_btn'
+                                                    onClick={(event) =>
+                                                        excluirProcedimento(linha, { ignorarConfirmacao: event.shiftKey })
+                                                    }
+                                                    title='Excluir procedimento, SHIFT = Excluir rápido'
+                                                >
+                                                    🗑️
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 )
 

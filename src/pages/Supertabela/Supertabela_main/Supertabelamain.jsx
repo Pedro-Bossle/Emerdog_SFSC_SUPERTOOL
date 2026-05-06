@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './Supertabelamain.css'
-import { supabase } from '../../../lib/supabase'
+import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
 
 const Supertabelamain = () => {
     const ALTURA_LINHA_TABELA = 42
@@ -24,6 +24,7 @@ const Supertabelamain = () => {
     const [ordenacaoPorCategoria, setOrdenacaoPorCategoria] = useState({})
     const [headerCompactProgress, setHeaderCompactProgress] = useState(0)
     const [edicaoAtiva, setEdicaoAtiva] = useState(false)
+    const [somenteLeitura] = useState(() => getReadOnlyFlag())
     const [edicoesLocais, setEdicoesLocais] = useState({})
     const [scrollTopoPorCategoria, setScrollTopoPorCategoria] = useState({})
 
@@ -956,16 +957,18 @@ const Supertabelamain = () => {
                         </select>
                     </div>
 
-                    <div className='supertabelamain_filters_select'>
-                        <label className='supertabelamain_filters_checkbox_wrap'>
-                            <input
-                                type="checkbox"
-                                checked={edicaoAtiva}
-                                onChange={(event) => setEdicaoAtiva(event.target.checked)}
-                            />
-                            <span>Ativar edição</span>
-                        </label>
-                    </div>
+                    {!somenteLeitura && (
+                        <div className='supertabelamain_filters_select'>
+                            <label className='supertabelamain_filters_checkbox_wrap'>
+                                <input
+                                    type="checkbox"
+                                    checked={edicaoAtiva}
+                                    onChange={(event) => setEdicaoAtiva(event.target.checked)}
+                                />
+                                <span>Ativar edição</span>
+                            </label>
+                        </div>
+                    )}
                 </div>
             </header>
 

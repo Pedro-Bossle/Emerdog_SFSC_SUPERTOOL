@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import './Credenciamento_main.css'
 
@@ -30,6 +30,13 @@ const tipoEspecialidadeNormalizado = (valor) => {
     return '-'
 }
 
+const ESPECIALIDADES_VINCULO_CLINICA_IDS = new Set([1, 2, 3, 5]) // Clinica 24h, Clinica, Consultorio, Laboratorio
+
+const estabelecimentoVinculavel = (item) => {
+    if (!item) return false
+    return ESPECIALIDADES_VINCULO_CLINICA_IDS.has(Number(item.especialidade_id))
+}
+
 const formatarTelefoneEntrada = (valor) => {
     const digitos = String(valor || '').replace(/\D/g, '').slice(0, 11)
     if (digitos.length === 0) return ''
@@ -51,6 +58,7 @@ const classeCorSituacao = (descricao) => {
 const Credenciamento_main = () => {
     const [loading, setLoading] = useState(false)
     const [erro, setErro] = useState('')
+    const [somenteLeitura, setSomenteLeitura] = useState(false)
     const [headerCompacto, setHeaderCompacto] = useState(false)
     const [expandedRowId, setExpandedRowId] = useState(null)
 
@@ -60,8 +68,11 @@ const Credenciamento_main = () => {
     const [especialidades, setEspecialidades] = useState([])
     const [prestadorCidades, setPrestadorCidades] = useState([])
     const [prestadorEspecialidades, setPrestadorEspecialidades] = useState([])
+    const [prestadorEstabelecimentos, setPrestadorEstabelecimentos] = useState([])
+    const [permiteLerPrestadorEstabelecimentos, setPermiteLerPrestadorEstabelecimentos] = useState(true)
 
-    const [termoBusca, setTermoBusca] = useState('')
+    const [termoBusca1, setTermoBusca1] = useState('')
+    const [termoBusca2, setTermoBusca2] = useState('')
     const [filtroSituacao, setFiltroSituacao] = useState('')
     const [filtroPdf, setFiltroPdf] = useState('todos')
     const [filtroSite, setFiltroSite] = useState('todos')
@@ -69,11 +80,13 @@ const Credenciamento_main = () => {
     const [filtroDia, setFiltroDia] = useState('todos')
 
     const [ordenacao, setOrdenacao] = useState({ coluna: 'data_atualizacao', direcao: 'desc' })
+    const [ordenacaoAtiva, setOrdenacaoAtiva] = useState(false)
     const [itensPorPagina, setItensPorPagina] = useState(20)
     const [paginaAtual, setPaginaAtual] = useState(1)
     const [paginaAlvoInput, setPaginaAlvoInput] = useState('1')
     const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(null)
     const [prestadorEditandoId, setPrestadorEditandoId] = useState(null)
+    const scrollPosAntesSalvarRef = useRef(0)
 
     const [modalAberto, setModalAberto] = useState(false)
     const [novoNome, setNovoNome] = useState('')
@@ -89,10 +102,14 @@ const Credenciamento_main = () => {
     const [novoSite, setNovoSite] = useState(false)
     const [novoMapa, setNovoMapa] = useState(false)
     const [novoAtendeEmClinica, setNovoAtendeEmClinica] = useState(false)
+    const [switchClinicaAlterado, setSwitchClinicaAlterado] = useState(false)
     const [estabelecimentosSelecionados, setEstabelecimentosSelecionados] = useState([])
     const [estabelecimentoInput, setEstabelecimentoInput] = useState('')
+    const [cidadePrincipalEmFoco, setCidadePrincipalEmFoco] = useState(false)
     const [cidadeSecundariaInput, setCidadeSecundariaInput] = useState('')
     const [cidadesSecundariasSelecionadas, setCidadesSecundariasSelecionadas] = useState([])
+    const [cidadesSecundariasNovas, setCidadesSecundariasNovas] = useState([])
+    const totalColunasTabela = somenteLeitura ? 10 : 11
 
     const cidadePorId = useMemo(() => new Map(cidades.map((cidade) => [Number(cidade.id), cidade])), [cidades])
     const situacaoPorId = useMemo(() => new Map(situacoes.map((situacao) => [Number(situacao.id), situacao])), [situacoes])
@@ -101,7 +118,6 @@ const Credenciamento_main = () => {
         [especialidades]
     )
 
-    const nomesCidadesExistentes = useMemo(() => cidades.map((cidade) => cidade.nome).filter(Boolean), [cidades])
     const especialidadePrincipalSelecionada = useMemo(
         () => especialidades.find((item) => Number(item.id) === Number(novaEspecialidadePrincipalId)) || null,
         [especialidades, novaEspecialidadePrincipalId]
@@ -122,6 +138,7 @@ const Credenciamento_main = () => {
                 { data: especialidadesData, error: errEspecialidades },
                 { data: prestadorCidadesData, error: errPrestadorCidades },
                 { data: prestadorEspecialidadesData, error: errPrestadorEspecialidades },
+                { data: prestadorEstabelecimentosData, error: errPrestadorEstabelecimentos },
             ] = await Promise.all([
                 supabase
                     .from('prestadores')
@@ -134,6 +151,7 @@ const Credenciamento_main = () => {
                 supabase.from('especialidades').select('id, nome, tipo').order('nome'),
                 supabase.from('prestador_cidades').select('prestador_id, cidade_id, principal'),
                 supabase.from('prestador_especialidades').select('prestador_id, especialidade_id, principal'),
+                supabase.from('prestador_estabelecimentos').select('veterinario_id, estabelecimento_id, principal'),
             ])
 
             const erros = [
@@ -148,6 +166,11 @@ const Credenciamento_main = () => {
                 setErro(`Erro ao carregar credenciamento: ${erros.join(' | ')}`)
                 return
             }
+            if (errPrestadorEstabelecimentos) {
+                setPermiteLerPrestadorEstabelecimentos(false)
+            } else {
+                setPermiteLerPrestadorEstabelecimentos(true)
+            }
 
             setPrestadores(prestadoresData || [])
             setCidades(cidadesData || [])
@@ -155,6 +178,7 @@ const Credenciamento_main = () => {
             setEspecialidades(especialidadesData || [])
             setPrestadorCidades(prestadorCidadesData || [])
             setPrestadorEspecialidades(prestadorEspecialidadesData || [])
+            setPrestadorEstabelecimentos(prestadorEstabelecimentosData || [])
         } catch (error) {
             setErro(`Falha inesperada ao carregar dados: ${error?.message || error}`)
         } finally {
@@ -167,6 +191,21 @@ const Credenciamento_main = () => {
     }, [carregarBase])
 
     useEffect(() => {
+        const carregarPermissoes = async () => {
+            const { data: authData } = await supabase.auth.getUser()
+            const userId = authData?.user?.id
+            if (!userId) return
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('credenciamento_read_only')
+                .eq('id', userId)
+                .single()
+            if (!error) setSomenteLeitura(!!data?.credenciamento_read_only)
+        }
+        carregarPermissoes()
+    }, [])
+
+    useEffect(() => {
         const onScroll = () => setHeaderCompacto(window.scrollY > 22)
         onScroll()
         window.addEventListener('scroll', onScroll, { passive: true })
@@ -175,9 +214,10 @@ const Credenciamento_main = () => {
 
     useEffect(() => {
         setPaginaAtual(1)
-    }, [termoBusca, filtroSituacao, filtroPdf, filtroSite, filtroMapa, filtroDia, itensPorPagina])
+    }, [termoBusca1, termoBusca2, filtroSituacao, filtroPdf, filtroSite, filtroMapa, filtroDia, itensPorPagina])
 
     const linhasCompletas = useMemo(() => {
+        const prestadorPorId = new Map(prestadores.map((prestador) => [Number(prestador.id), prestador]))
         const cidadesPorPrestador = new Map()
         prestadorCidades.forEach((item) => {
             const chave = Number(item.prestador_id)
@@ -190,6 +230,13 @@ const Credenciamento_main = () => {
             const chave = Number(item.prestador_id)
             if (!especialidadesPorPrestador.has(chave)) especialidadesPorPrestador.set(chave, [])
             especialidadesPorPrestador.get(chave).push(item)
+        })
+
+        const estabelecimentosPorVeterinario = new Map()
+        prestadorEstabelecimentos.forEach((item) => {
+            const chave = Number(item.veterinario_id)
+            if (!estabelecimentosPorVeterinario.has(chave)) estabelecimentosPorVeterinario.set(chave, [])
+            estabelecimentosPorVeterinario.get(chave).push(item)
         })
 
         return prestadores.map((prestador) => {
@@ -213,6 +260,15 @@ const Credenciamento_main = () => {
                 .map((item) => especialidadePorId.get(Number(item.especialidade_id))?.nome)
                 .filter(Boolean)
 
+            const estabelecimentosVinculados = (estabelecimentosPorVeterinario.get(Number(prestador.id)) || [])
+                .map((rel) => prestadorPorId.get(Number(rel.estabelecimento_id)))
+                .filter(Boolean)
+            const telefonesVinculados = [...new Set(estabelecimentosVinculados.map((item) => String(item.telefone || '').trim()).filter(Boolean))]
+            const modalidadesVinculadas = [...new Set(estabelecimentosVinculados.map((item) => String(item.nome || '').trim()).filter(Boolean))]
+            const telefoneVinculado = telefonesVinculados.join(' | ')
+            const modalidadeVinculada = modalidadesVinculadas.join(' | ')
+            const possuiVinculoClinica = estabelecimentosVinculados.length > 0
+
             const diaRef = prestador.data_atualizacao || prestador.data_cadastro || null
             const chaveMes = diaRef ? `${new Date(diaRef).getFullYear()}-${String(new Date(diaRef).getMonth() + 1).padStart(2, '0')}` : ''
 
@@ -224,11 +280,14 @@ const Credenciamento_main = () => {
                 especialidadesExtras,
                 tipoEspecialidade,
                 situacaoDescricao: situacaoPorId.get(Number(prestador.situacao_id))?.descricao || '-',
+                telefoneEfetivo: possuiVinculoClinica ? telefoneVinculado || prestador.telefone || '' : prestador.telefone || '',
+                modalidadeEfetiva: possuiVinculoClinica ? modalidadeVinculada || prestador.modalidade || '' : prestador.modalidade || '',
+                possuiVinculoClinica,
                 diaRef,
                 chaveMes,
             }
         })
-    }, [prestadores, prestadorCidades, prestadorEspecialidades, cidadePorId, especialidadePorId, situacaoPorId])
+    }, [prestadores, prestadorCidades, prestadorEspecialidades, prestadorEstabelecimentos, cidadePorId, especialidadePorId, situacaoPorId])
 
     const opcoesFiltroMes = useMemo(() => {
         const mapa = new Map()
@@ -242,13 +301,22 @@ const Credenciamento_main = () => {
     }, [linhasCompletas])
 
     const linhasFiltradas = useMemo(() => {
-        const termo = normalizarTexto(termoBusca)
+        const termo1 = normalizarTexto(termoBusca1)
+        const termo2 = normalizarTexto(termoBusca2)
         const passaTriBool = (filtro, valor) => (filtro === 'todos' ? true : filtro === 'sim' ? !!valor : !valor)
         return linhasCompletas.filter((item) => {
-            const pilhaBusca = [item.nome, item.cidadePrincipalNome, item.cidadesSecundarias.join(' '), item.especialidadePrincipalNome]
+            const pilhaBusca = [
+                item.nome,
+                item.cidadePrincipalNome,
+                item.cidadesSecundarias.join(' '),
+                item.especialidadePrincipalNome,
+                item.especialidadesExtras.join(' '),
+                item.modalidadeEfetiva,
+            ]
                 .map(normalizarTexto)
                 .join(' ')
-            if (termo && !pilhaBusca.includes(termo)) return false
+            if (termo1 && !pilhaBusca.includes(termo1)) return false
+            if (termo2 && !pilhaBusca.includes(termo2)) return false
             if (filtroSituacao && String(item.situacao_id) !== String(filtroSituacao)) return false
             if (!passaTriBool(filtroPdf, item.tem_pdf)) return false
             if (!passaTriBool(filtroSite, item.no_site)) return false
@@ -256,9 +324,24 @@ const Credenciamento_main = () => {
             if (filtroDia !== 'todos' && item.chaveMes !== filtroDia) return false
             return true
         })
-    }, [linhasCompletas, termoBusca, filtroSituacao, filtroPdf, filtroSite, filtroMapa, filtroDia])
+    }, [linhasCompletas, termoBusca1, termoBusca2, filtroSituacao, filtroPdf, filtroSite, filtroMapa, filtroDia])
+
+    const temFiltroAtivo = useMemo(
+        () =>
+            !!(
+                termoBusca1.trim() ||
+                termoBusca2.trim() ||
+                filtroSituacao ||
+                filtroPdf !== 'todos' ||
+                filtroSite !== 'todos' ||
+                filtroMapa !== 'todos' ||
+                filtroDia !== 'todos'
+            ),
+        [termoBusca1, termoBusca2, filtroSituacao, filtroPdf, filtroSite, filtroMapa, filtroDia]
+    )
 
     const linhasOrdenadas = useMemo(() => {
+        if (!temFiltroAtivo && !ordenacaoAtiva) return linhasFiltradas
         const resultado = [...linhasFiltradas]
         const { coluna, direcao } = ordenacao
         const fator = direcao === 'asc' ? 1 : -1
@@ -272,7 +355,7 @@ const Credenciamento_main = () => {
             return String(av || '').localeCompare(String(bv || ''), 'pt-BR', { sensitivity: 'base' }) * fator
         })
         return resultado
-    }, [linhasFiltradas, ordenacao])
+    }, [linhasFiltradas, ordenacao, temFiltroAtivo, ordenacaoAtiva])
 
     const totalPaginas = Math.max(1, Math.ceil(linhasOrdenadas.length / Number(itensPorPagina || 20)))
     const paginaAjustada = Math.min(Math.max(1, paginaAtual), totalPaginas)
@@ -293,12 +376,14 @@ const Credenciamento_main = () => {
 
     const cidadesSugeridas = useMemo(() => {
         const termo = normalizarTexto(cidadeSecundariaInput)
+        const cidadesSecundariasNovasNorm = cidadesSecundariasNovas.map((nome) => normalizarTexto(nome))
         return cidades
             .filter((cidade) => normalizarTexto(cidade.nome) !== normalizarTexto(novoCidadePrincipal))
             .filter((cidade) => !cidadesSecundariasSelecionadas.includes(Number(cidade.id)))
+            .filter((cidade) => !cidadesSecundariasNovasNorm.includes(normalizarTexto(cidade.nome)))
             .filter((cidade) => !termo || normalizarTexto(cidade.nome).includes(termo))
             .slice(0, 8)
-    }, [cidadeSecundariaInput, cidades, novoCidadePrincipal, cidadesSecundariasSelecionadas])
+    }, [cidadeSecundariaInput, cidades, novoCidadePrincipal, cidadesSecundariasSelecionadas, cidadesSecundariasNovas])
 
     const especialidadesSecundariasSugeridas = useMemo(() => {
         const termo = normalizarTexto(especialidadeSecundariaInput)
@@ -319,9 +404,10 @@ const Credenciamento_main = () => {
         return linhasCompletas.filter(
             (item) =>
                 Number(item.cidade_id) === Number(cidadePrincipalObj.id) &&
-                item.tipoEspecialidade === 'LOCAL'
+                Number(item.id) !== Number(prestadorEditandoId || 0) &&
+                estabelecimentoVinculavel(item)
         )
-    }, [linhasCompletas, cidadePrincipalObj])
+    }, [linhasCompletas, cidadePrincipalObj, prestadorEditandoId])
 
     const estabelecimentosSugeridos = useMemo(() => {
         const termo = normalizarTexto(estabelecimentoInput)
@@ -337,6 +423,18 @@ const Credenciamento_main = () => {
                 .map((id) => estabelecimentosLocaisDaCidade.find((item) => Number(item.id) === Number(id)))
                 .filter(Boolean),
         [estabelecimentosSelecionados, estabelecimentosLocaisDaCidade]
+    )
+
+    const cidadesPrincipaisSugeridas = useMemo(() => {
+        const termo = normalizarTexto(novoCidadePrincipal)
+        return cidades
+            .filter((cidade) => !termo || normalizarTexto(cidade.nome).includes(termo))
+            .slice(0, 8)
+    }, [cidades, novoCidadePrincipal])
+
+    const cidadePrincipalExisteExata = useMemo(
+        () => cidades.some((cidade) => normalizarTexto(cidade.nome) === normalizarTexto(novoCidadePrincipal)),
+        [cidades, novoCidadePrincipal]
     )
 
     const telefoneAutoClinica = useMemo(
@@ -358,6 +456,7 @@ const Credenciamento_main = () => {
     )
 
     const handleOrdenar = (coluna) => {
+        setOrdenacaoAtiva(true)
         setOrdenacao((anterior) =>
             anterior.coluna !== coluna
                 ? { coluna, direcao: 'asc' }
@@ -382,10 +481,13 @@ const Credenciamento_main = () => {
         setNovoSite(false)
         setNovoMapa(false)
         setNovoAtendeEmClinica(false)
+        setSwitchClinicaAlterado(false)
         setEstabelecimentosSelecionados([])
         setEstabelecimentoInput('')
+        setCidadePrincipalEmFoco(false)
         setCidadeSecundariaInput('')
         setCidadesSecundariasSelecionadas([])
+        setCidadesSecundariasNovas([])
     }
 
     const adicionarCidadeSecundaria = (cidadeId) => {
@@ -396,6 +498,23 @@ const Credenciamento_main = () => {
     }
     const removerCidadeSecundaria = (cidadeId) =>
         setCidadesSecundariasSelecionadas((anteriores) => anteriores.filter((id) => id !== Number(cidadeId)))
+
+    const adicionarCidadeSecundariaNova = (nomeCidade) => {
+        const nome = String(nomeCidade || '').trim()
+        if (!nome) return
+        const nomeNorm = normalizarTexto(nome)
+        const jaExistePorId = cidadesSecundariasSelecionadas.some(
+            (cidadeId) => normalizarTexto(cidadePorId.get(Number(cidadeId))?.nome || '') === nomeNorm
+        )
+        const jaExisteNova = cidadesSecundariasNovas.some((cidade) => normalizarTexto(cidade) === nomeNorm)
+        const ehCidadePrincipal = normalizarTexto(novoCidadePrincipal) === nomeNorm
+        if (jaExistePorId || jaExisteNova || ehCidadePrincipal) return
+        setCidadesSecundariasNovas((anteriores) => [...anteriores, nome])
+        setCidadeSecundariaInput('')
+    }
+
+    const removerCidadeSecundariaNova = (nomeCidade) =>
+        setCidadesSecundariasNovas((anteriores) => anteriores.filter((cidade) => normalizarTexto(cidade) !== normalizarTexto(nomeCidade)))
 
     const adicionarEspecialidadeSecundaria = (especialidadeId) => {
         const idNum = Number(especialidadeId)
@@ -418,6 +537,11 @@ const Credenciamento_main = () => {
     const removerEstabelecimento = (prestadorId) =>
         setEstabelecimentosSelecionados((anteriores) => anteriores.filter((id) => id !== Number(prestadorId)))
 
+    const selecionarCidadePrincipal = (nomeCidade) => {
+        setNovoCidadePrincipal(String(nomeCidade || ''))
+        setCidadePrincipalEmFoco(false)
+    }
+
     const obterOuCriarCidadePorNome = async (nomeCidade) => {
         const nome = String(nomeCidade || '').trim()
         if (!nome) return null
@@ -429,10 +553,20 @@ const Credenciamento_main = () => {
             .select('id, nome')
             .single()
         if (error) throw new Error(`Erro ao criar cidade "${nome}": ${error.message}`)
+        if (data?.id) {
+            setCidades((anteriores) => {
+                const jaExiste = anteriores.some((cidade) => Number(cidade.id) === Number(data.id))
+                if (jaExiste) return anteriores
+                return [...anteriores, data].sort((a, b) =>
+                    String(a?.nome || '').localeCompare(String(b?.nome || ''), 'pt-BR', { sensitivity: 'base' })
+                )
+            })
+        }
         return data
     }
 
     const atualizarCampoPrestador = async (prestadorId, campos) => {
+        if (somenteLeitura) return
         const { error } = await supabase
             .from('prestadores')
             .update({ ...campos, data_atualizacao: new Date().toISOString() })
@@ -448,6 +582,7 @@ const Credenciamento_main = () => {
 
     const alternarCampoBooleano = (event, item, campo) => {
         event.stopPropagation()
+        if (somenteLeitura) return
         if (event.target instanceof HTMLInputElement) return
         atualizarCampoPrestador(item.id, { [campo]: !item[campo] })
     }
@@ -457,6 +592,7 @@ const Credenciamento_main = () => {
     }
 
     const excluirPrestador = async (prestadorId, opcoes = {}) => {
+        if (somenteLeitura) return
         const idNum = Number(prestadorId)
         const executarExclusao = async () => {
             const { error } = await supabase
@@ -477,7 +613,8 @@ const Credenciamento_main = () => {
         abrirConfirmacaoExclusao('Deseja excluir este cadastro?', executarExclusao)
     }
 
-    const abrirModalEdicao = (item) => {
+    const abrirModalEdicao = async (item) => {
+        if (somenteLeitura) return
         const idNum = Number(item.id)
         setPrestadorEditandoId(idNum)
         setModalAberto(true)
@@ -491,8 +628,30 @@ const Credenciamento_main = () => {
         setNovoPdf(!!item.tem_pdf)
         setNovoSite(!!item.no_site)
         setNovoMapa(!!item.no_mapa)
-        setNovoAtendeEmClinica(false)
-        setEstabelecimentosSelecionados([])
+        let estabelecimentosVinculados = prestadorEstabelecimentos
+            .filter((rel) => Number(rel.veterinario_id) === idNum)
+            .sort((a, b) => Number(b.principal) - Number(a.principal))
+            .map((rel) => Number(rel.estabelecimento_id))
+        if (permiteLerPrestadorEstabelecimentos) {
+            const { data, error } = await supabase
+                .from('prestador_estabelecimentos')
+                .select('veterinario_id, estabelecimento_id, principal')
+                .eq('veterinario_id', idNum)
+            if (!error && Array.isArray(data)) {
+                estabelecimentosVinculados = data
+                    .sort((a, b) => Number(b.principal) - Number(a.principal))
+                    .map((rel) => Number(rel.estabelecimento_id))
+                setPrestadorEstabelecimentos((anteriores) => [
+                    ...anteriores.filter((rel) => Number(rel.veterinario_id) !== idNum),
+                    ...data,
+                ])
+            } else if (error) {
+                setPermiteLerPrestadorEstabelecimentos(false)
+            }
+        }
+        setNovoAtendeEmClinica(estabelecimentosVinculados.length > 0)
+        setSwitchClinicaAlterado(false)
+        setEstabelecimentosSelecionados([...new Set(estabelecimentosVinculados)])
         setEstabelecimentoInput('')
         const cidadesSec = prestadorCidades
             .filter((rel) => Number(rel.prestador_id) === idNum && !rel.principal)
@@ -504,9 +663,12 @@ const Credenciamento_main = () => {
         setEspecialidadesSecundariasSelecionadas([...new Set(especialidadesSec)])
         setCidadeSecundariaInput('')
         setEspecialidadeSecundariaInput('')
+        setCidadesSecundariasNovas([])
+        setCidadePrincipalEmFoco(false)
     }
 
     const salvarNovoPrestador = async () => {
+        if (somenteLeitura) return setErro('Seu perfil tem acesso somente leitura para credenciamento.')
         if (!novoNome.trim()) return setErro('Nome e obrigatorio.')
         if (!novoCidadePrincipal.trim()) return setErro('Cidade principal e obrigatoria.')
         if (!novaEspecialidadePrincipalId) return setErro('Especialidade principal e obrigatoria.')
@@ -527,9 +689,10 @@ const Credenciamento_main = () => {
         }
 
         try {
-            setLoading(true)
-            setErro('')
             const emEdicao = !!prestadorEditandoId
+            scrollPosAntesSalvarRef.current = window.scrollY || 0
+            if (!emEdicao) setLoading(true)
+            setErro('')
 
             const cidadePrincipalObj = await obterOuCriarCidadePorNome(novoCidadePrincipal)
 
@@ -540,7 +703,7 @@ const Credenciamento_main = () => {
                 cidade_id: Number(cidadePrincipalObj.id),
                 endereco: tipoAtual === 'LOCAL' ? novoEndereco.trim() : null,
                 modalidade: novoAtendeEmClinica
-                    ? modalidadeAutoClinica || null
+                    ? null
                     : tipoAtual === 'ESPECIALIDADE'
                         ? novoModalidade.trim() || null
                         : null,
@@ -551,6 +714,7 @@ const Credenciamento_main = () => {
                 no_mapa: !!novoMapa,
                 data_atualizacao: new Date().toISOString(),
             }
+            if (novoAtendeEmClinica) payload.telefone = null
             let prestadorId = Number(prestadorEditandoId || 0)
             if (emEdicao) {
                 const { error: erroUpdate } = await supabase.from('prestadores').update(payload).eq('id', prestadorId)
@@ -564,11 +728,22 @@ const Credenciamento_main = () => {
             if (emEdicao) {
                 await supabase.from('prestador_cidades').delete().eq('prestador_id', prestadorId)
                 await supabase.from('prestador_especialidades').delete().eq('prestador_id', prestadorId)
-                await supabase.from('prestador_estabelecimentos').delete().eq('veterinario_id', prestadorId)
+            }
+            const cidadesSecundariasIds = [...cidadesSecundariasSelecionadas]
+            for (const nomeCidade of cidadesSecundariasNovas) {
+                const cidadeObj = await obterOuCriarCidadePorNome(nomeCidade)
+                if (!cidadeObj?.id) continue
+                const cidadeIdNum = Number(cidadeObj.id)
+                if (!cidadesSecundariasIds.includes(cidadeIdNum)) cidadesSecundariasIds.push(cidadeIdNum)
             }
             const cidadesPayload = [{ prestador_id: prestadorId, cidade_id: Number(cidadePrincipalObj.id), principal: true }]
-            for (const cidadeId of cidadesSecundariasSelecionadas) {
+            for (const cidadeId of cidadesSecundariasIds) {
+                if (Number(cidadeId) === Number(cidadePrincipalObj.id)) continue
                 const cidadeObj = cidadePorId.get(Number(cidadeId))
+                if (!cidadeObj && Number(cidadeId) !== Number(cidadePrincipalObj.id)) {
+                    cidadesPayload.push({ prestador_id: prestadorId, cidade_id: Number(cidadeId), principal: false })
+                    continue
+                }
                 if (!cidadeObj) continue
                 cidadesPayload.push({ prestador_id: prestadorId, cidade_id: Number(cidadeObj.id), principal: false })
             }
@@ -588,13 +763,32 @@ const Credenciamento_main = () => {
                 payloadEspecialidades.push(...payloadEspecialidadesSec)
             }
             await supabase.from('prestador_especialidades').insert(payloadEspecialidades)
-            if (novoAtendeEmClinica && estabelecimentosSelecionados.length) {
-                const payloadEstabelecimentos = estabelecimentosSelecionados.map((estabelecimentoId, idx) => ({
-                    veterinario_id: prestadorId,
-                    estabelecimento_id: Number(estabelecimentoId),
-                    principal: idx === 0,
-                }))
-                await supabase.from('prestador_estabelecimentos').insert(payloadEstabelecimentos)
+            let payloadEstabelecimentos = []
+            if (emEdicao) {
+                if (switchClinicaAlterado) {
+                    await supabase.from('prestador_estabelecimentos').delete().eq('veterinario_id', prestadorId)
+                    payloadEstabelecimentos = novoAtendeEmClinica
+                        ? estabelecimentosSelecionados.map((estabelecimentoId, idx) => ({
+                            veterinario_id: prestadorId,
+                            estabelecimento_id: Number(estabelecimentoId),
+                            principal: idx === 0,
+                        }))
+                        : []
+                    if (payloadEstabelecimentos.length) {
+                        await supabase.from('prestador_estabelecimentos').insert(payloadEstabelecimentos)
+                    }
+                }
+            } else {
+                payloadEstabelecimentos = novoAtendeEmClinica
+                    ? estabelecimentosSelecionados.map((estabelecimentoId, idx) => ({
+                        veterinario_id: prestadorId,
+                        estabelecimento_id: Number(estabelecimentoId),
+                        principal: idx === 0,
+                    }))
+                    : []
+                if (payloadEstabelecimentos.length) {
+                    await supabase.from('prestador_estabelecimentos').insert(payloadEstabelecimentos)
+                }
             }
 
             if (emEdicao) {
@@ -609,6 +803,15 @@ const Credenciamento_main = () => {
                     ...anteriores.filter((item) => Number(item.prestador_id) !== prestadorId),
                     ...payloadEspecialidades,
                 ])
+                if (switchClinicaAlterado) {
+                    setPrestadorEstabelecimentos((anteriores) => [
+                        ...anteriores.filter((item) => Number(item.veterinario_id) !== prestadorId),
+                        ...payloadEstabelecimentos,
+                    ])
+                }
+                requestAnimationFrame(() => {
+                    window.scrollTo({ top: scrollPosAntesSalvarRef.current, behavior: 'auto' })
+                })
             } else {
                 await carregarBase()
                 setOrdenacao({ coluna: 'data_atualizacao', direcao: 'desc' })
@@ -618,7 +821,7 @@ const Credenciamento_main = () => {
         } catch (error) {
             setErro(error?.message || `Erro ao salvar: ${error}`)
         } finally {
-            setLoading(false)
+            if (!prestadorEditandoId) setLoading(false)
         }
     }
 
@@ -630,73 +833,97 @@ const Credenciamento_main = () => {
             <header className={`credenciamento_main_header ${headerCompacto ? 'is-compact' : ''}`}>
                 <h2>Filtros</h2>
                 <div className='credenciamento_main_filters'>
-                    <div className='credenciamento_main_filter_item credenciamento_main_filter_busca'>
-                        <p>Pesquisa por especialidade, nome e cidade</p>
-                        <input
-                            type='text'
-                            className='credenciamento_main_input'
-                            placeholder='Especialidade, nome ou cidade'
-                            value={termoBusca}
-                            onChange={(event) => setTermoBusca(event.target.value)}
-                        />
+                    <div className='credenciamento_main_filters_layout'>
+                        <div className='credenciamento_main_filters_selectors'>
+                            <div className='credenciamento_main_filters_row'>
+                                <div className='credenciamento_main_filter_item credenciamento_main_filter_busca'>
+                                    <p>Busca</p>
+                                    <input
+                                        type='text'
+                                        className='credenciamento_main_input'
+                                        placeholder='Nome, especialidade, cidades ou tipos'
+                                        value={termoBusca1}
+                                        onChange={(event) => setTermoBusca1(event.target.value)}
+                                    />
+                                </div>
+                                <div className='credenciamento_main_filter_item credenciamento_main_filter_busca'>
+                                    <p>Refinar busca</p>
+                                    <input
+                                        type='text'
+                                        className='credenciamento_main_input'
+                                        placeholder='Refinar busca (2º critério)'
+                                        value={termoBusca2}
+                                        onChange={(event) => setTermoBusca2(event.target.value)}
+                                    />
+                                </div>
+                                <div className='credenciamento_main_filter_item'>
+                                    <p>Situação</p>
+                                    <select className='credenciamento_main_select' value={filtroSituacao} onChange={(e) => setFiltroSituacao(e.target.value)}>
+                                        <option value=''>Todas</option>
+                                        {situacoes.map((situacao) => (
+                                            <option key={`sit-filtro-${situacao.id}`} value={situacao.id}>
+                                                {situacao.descricao}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                            <div className='credenciamento_main_filters_row'>
+                                <div className='credenciamento_main_filter_item'>
+                                    <p>PDF</p>
+                                    <select className='credenciamento_main_select' value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
+                                        <option value='todos'>Todos</option>
+                                        <option value='sim'>Com PDF</option>
+                                        <option value='nao'>Sem PDF</option>
+                                    </select>
+                                </div>
+                                <div className='credenciamento_main_filter_item'>
+                                    <p>Site</p>
+                                    <select className='credenciamento_main_select' value={filtroSite} onChange={(e) => setFiltroSite(e.target.value)}>
+                                        <option value='todos'>Todos</option>
+                                        <option value='sim'>No site</option>
+                                        <option value='nao'>Fora do site</option>
+                                    </select>
+                                </div>
+                                <div className='credenciamento_main_filter_item'>
+                                    <p>Mapa</p>
+                                    <select className='credenciamento_main_select' value={filtroMapa} onChange={(e) => setFiltroMapa(e.target.value)}>
+                                        <option value='todos'>Todos</option>
+                                        <option value='sim'>No mapa</option>
+                                        <option value='nao'>Fora do mapa</option>
+                                    </select>
+                                </div>
+                                <div className='credenciamento_main_filter_item'>
+                                    <p>Dia</p>
+                                    <select className='credenciamento_main_select' value={filtroDia} onChange={(e) => setFiltroDia(e.target.value)}>
+                                        <option value='todos'>Todos</option>
+                                        {opcoesFiltroMes.map((opcao) => (
+                                            <option key={`mes-${opcao.valor}`} value={opcao.valor}>
+                                                {opcao.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                        <div className='credenciamento_main_filters_actions'>
+                            {!somenteLeitura && (
+                                <button
+                                    type='button'
+                                    className='credenciamento_main_action_btn'
+                                    onClick={() => {
+                                        resetarModal()
+                                        setModalAberto(true)
+                                    }}
+                                >
+                                    ＋ Novo cadastro
+                                </button>
+                            )}
+                            <button type='button' className='credenciamento_main_action_btn secondary'>
+                                Imprimir RC
+                            </button>
+                        </div>
                     </div>
-
-                    <div className='credenciamento_main_filter_item'>
-                        <p>Situação</p>
-                        <select className='credenciamento_main_select' value={filtroSituacao} onChange={(e) => setFiltroSituacao(e.target.value)}>
-                            <option value=''>Todas</option>
-                            {situacoes.map((situacao) => (
-                                <option key={`sit-filtro-${situacao.id}`} value={situacao.id}>
-                                    {situacao.descricao}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className='credenciamento_main_filter_item'>
-                        <p>PDF</p>
-                        <select className='credenciamento_main_select' value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
-                            <option value='todos'>Todos</option>
-                            <option value='sim'>Com PDF</option>
-                            <option value='nao'>Sem PDF</option>
-                        </select>
-                    </div>
-                    <div className='credenciamento_main_filter_item'>
-                        <p>Site</p>
-                        <select className='credenciamento_main_select' value={filtroSite} onChange={(e) => setFiltroSite(e.target.value)}>
-                            <option value='todos'>Todos</option>
-                            <option value='sim'>No site</option>
-                            <option value='nao'>Fora do site</option>
-                        </select>
-                    </div>
-                    <div className='credenciamento_main_filter_item'>
-                        <p>Mapa</p>
-                        <select className='credenciamento_main_select' value={filtroMapa} onChange={(e) => setFiltroMapa(e.target.value)}>
-                            <option value='todos'>Todos</option>
-                            <option value='sim'>No mapa</option>
-                            <option value='nao'>Fora do mapa</option>
-                        </select>
-                    </div>
-                    <div className='credenciamento_main_filter_item'>
-                        <p>Dia (mês)</p>
-                        <select className='credenciamento_main_select' value={filtroDia} onChange={(e) => setFiltroDia(e.target.value)}>
-                            <option value='todos'>Todos</option>
-                            {opcoesFiltroMes.map((opcao) => (
-                                <option key={`mes-${opcao.valor}`} value={opcao.valor}>
-                                    {opcao.label}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-                    <button
-                        type='button'
-                        className='credenciamento_main_action_btn'
-                        onClick={() => {
-                            resetarModal()
-                            setModalAberto(true)
-                        }}
-                    >
-                        ＋ Novo cadastro
-                    </button>
                 </div>
             </header>
 
@@ -706,6 +933,11 @@ const Credenciamento_main = () => {
                     <button type='button' onClick={() => setErro('')}>
                         x
                     </button>
+                </div>
+            )}
+            {somenteLeitura && (
+                <div className='credenciamento_main_alert' role='status'>
+                    <span>Perfil com acesso somente leitura: filtros e pesquisa liberados, edição bloqueada.</span>
                 </div>
             )}
 
@@ -727,7 +959,7 @@ const Credenciamento_main = () => {
                                     <th className='table_header cred_col_flag' onClick={() => handleOrdenar('no_site')}>Site{indicadorOrdenacao('no_site')}</th>
                                     <th className='table_header cred_col_flag' onClick={() => handleOrdenar('no_mapa')}>Mapa{indicadorOrdenacao('no_mapa')}</th>
                                     <th className='table_header cred_col_dia' onClick={() => handleOrdenar('diaRef')}>Dia{indicadorOrdenacao('diaRef')}</th>
-                                    <th className='table_header cred_col_excluir'>Excluir</th>
+                                    {!somenteLeitura && <th className='table_header cred_col_excluir'>Excluir</th>}
                                 </tr>
                             </thead>
                             <tbody>
@@ -741,6 +973,7 @@ const Credenciamento_main = () => {
                                                 className='table_text_left credenciamento_main_nome_click'
                                                 onClick={(e) => {
                                                     e.stopPropagation()
+                                                    if (somenteLeitura) return
                                                     abrirModalEdicao(item)
                                                 }}
                                             >
@@ -748,14 +981,15 @@ const Credenciamento_main = () => {
                                             </td>
                                             <td className='table_text_left'>{item.cidadePrincipalNome}</td>
                                             <td className='table_text_left'>{item.especialidadePrincipalNome}</td>
-                                            <td className='table_text_left'>{item.telefone ? formatarTelefoneEntrada(item.telefone) : '-'}</td>
-                                            <td className='table_text_left cred_col_endereco'>{[item.endereco, item.modalidade].filter(Boolean).join(' | ') || '-'}</td>
+                                            <td className='table_text_left'>{item.telefoneEfetivo ? formatarTelefoneEntrada(item.telefoneEfetivo) : '-'}</td>
+                                            <td className='table_text_left cred_col_endereco'>{[item.endereco, item.modalidadeEfetiva].filter(Boolean).join(' | ') || '-'}</td>
                                             <td onClick={(e) => e.stopPropagation()} className='cred_col_situacao'>
                                                 <select
                                                     className={`credenciamento_inline_select credenciamento_inline_select_situacao ${classeCorSituacao(
                                                         situacaoPorId.get(Number(item.situacao_id))?.descricao || ''
                                                     )}`}
                                                     value={item.situacao_id || ''}
+                                                    disabled={somenteLeitura}
                                                     onChange={(e) =>
                                                         atualizarCampoPrestador(item.id, {
                                                             situacao_id: e.target.value ? Number(e.target.value) : null,
@@ -777,6 +1011,7 @@ const Credenciamento_main = () => {
                                                 <input
                                                     type='checkbox'
                                                     checked={!!item.tem_pdf}
+                                                    disabled={somenteLeitura}
                                                     onClick={(e) => e.stopPropagation()}
                                                     onChange={(e) => atualizarCampoPrestador(item.id, { tem_pdf: e.target.checked })}
                                                 />
@@ -788,6 +1023,7 @@ const Credenciamento_main = () => {
                                                 <input
                                                     type='checkbox'
                                                     checked={!!item.no_site}
+                                                    disabled={somenteLeitura}
                                                     onClick={(e) => e.stopPropagation()}
                                                     onChange={(e) => atualizarCampoPrestador(item.id, { no_site: e.target.checked })}
                                                 />
@@ -799,28 +1035,31 @@ const Credenciamento_main = () => {
                                                 <input
                                                     type='checkbox'
                                                     checked={!!item.no_mapa}
+                                                    disabled={somenteLeitura}
                                                     onClick={(e) => e.stopPropagation()}
                                                     onChange={(e) => atualizarCampoPrestador(item.id, { no_mapa: e.target.checked })}
                                                 />
                                             </td>
                                             <td className='cred_col_dia'>{formatarData(item.diaRef)}</td>
-                                            <td onClick={(e) => e.stopPropagation()} className='credenciamento_main_actions_cell cred_col_excluir'>
-                                                <button
-                                                    type='button'
-                                                    className='table_delete_btn'
-                                                    onClick={(event) =>
-                                                        excluirPrestador(item.id, { ignorarConfirmacao: event.shiftKey })
-                                                    }
-                                                    title='Excluir cadastro, SHIFT = Excluir rápido'
-                                                >
-                                                    🗑️
-                                                </button>
-                                            </td>
+                                            {!somenteLeitura && (
+                                                <td onClick={(e) => e.stopPropagation()} className='credenciamento_main_actions_cell cred_col_excluir'>
+                                                    <button
+                                                        type='button'
+                                                        className='table_delete_btn'
+                                                        onClick={(event) =>
+                                                            excluirPrestador(item.id, { ignorarConfirmacao: event.shiftKey })
+                                                        }
+                                                        title='Excluir cadastro, SHIFT = Excluir rápido'
+                                                    >
+                                                        🗑️
+                                                    </button>
+                                                </td>
+                                            )}
                                         </tr>
 
                                         {Number(expandedRowId) === Number(item.id) && (
                                             <tr className='credenciamento_main_detail_row'>
-                                                <td colSpan={11}>
+                                                <td colSpan={totalColunasTabela}>
                                                     <div className='credenciamento_main_detail_box'>
                                                         <p>
                                                             <strong>Outras cidades:</strong> {item.cidadesSecundarias.join(', ') || 'Nenhuma'}
@@ -837,7 +1076,7 @@ const Credenciamento_main = () => {
                                 ))}
                                 {!loading && linhasPaginadas.length === 0 && (
                                     <tr>
-                                        <td colSpan={11}>Nenhum prestador encontrado.</td>
+                                        <td colSpan={totalColunasTabela}>Nenhum prestador encontrado.</td>
                                     </tr>
                                 )}
                             </tbody>
@@ -916,11 +1155,36 @@ const Credenciamento_main = () => {
                                 <span>Cidade principal *</span>
                                 <input
                                     type='text'
-                                    list='credenciamento-cidades'
                                     value={novoCidadePrincipal}
                                     onChange={(e) => setNovoCidadePrincipal(e.target.value)}
+                                    onFocus={() => setCidadePrincipalEmFoco(true)}
+                                    onBlur={() => setTimeout(() => setCidadePrincipalEmFoco(false), 120)}
                                     placeholder='Digite ou selecione'
+                                    autoComplete='off'
                                 />
+                                {cidadePrincipalEmFoco && (
+                                    <div className='credenciamento_modal_sugestoes'>
+                                        {cidadesPrincipaisSugeridas.map((cidade) => (
+                                            <button
+                                                type='button'
+                                                key={`cidade-principal-sug-${cidade.id}`}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => selecionarCidadePrincipal(cidade.nome)}
+                                            >
+                                                {cidade.nome}
+                                            </button>
+                                        ))}
+                                        {novoCidadePrincipal.trim() && !cidadePrincipalExisteExata && (
+                                            <button
+                                                type='button'
+                                                onMouseDown={(e) => e.preventDefault()}
+                                                onClick={() => selecionarCidadePrincipal(novoCidadePrincipal.trim())}
+                                            >
+                                                Adicionar nova cidade: {novoCidadePrincipal.trim()}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </label>
 
                             <label>
@@ -942,6 +1206,7 @@ const Credenciamento_main = () => {
                                     aria-checked={novoAtendeEmClinica}
                                     className={`credenciamento_switch ${novoAtendeEmClinica ? 'is-on' : 'is-off'}`}
                                     onClick={() => {
+                                        setSwitchClinicaAlterado(true)
                                         setNovoAtendeEmClinica((anterior) => !anterior)
                                         setEstabelecimentosSelecionados([])
                                         setEstabelecimentoInput('')
@@ -1026,6 +1291,20 @@ const Credenciamento_main = () => {
                                                 {cidade.nome}
                                             </button>
                                         ))}
+                                        {!cidades.some(
+                                            (cidade) => normalizarTexto(cidade.nome) === normalizarTexto(cidadeSecundariaInput)
+                                        ) && (
+                                            <button type='button' onClick={() => adicionarCidadeSecundariaNova(cidadeSecundariaInput)}>
+                                                Adicionar nova cidade: {cidadeSecundariaInput.trim()}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                                {cidadesSugeridas.length === 0 && cidadeSecundariaInput.trim() && (
+                                    <div className='credenciamento_modal_sugestoes'>
+                                        <button type='button' onClick={() => adicionarCidadeSecundariaNova(cidadeSecundariaInput)}>
+                                            Adicionar nova cidade: {cidadeSecundariaInput.trim()}
+                                        </button>
                                     </div>
                                 )}
                                 <div className='credenciamento_modal_tags'>
@@ -1033,6 +1312,12 @@ const Credenciamento_main = () => {
                                         <span key={`tag-cidade-${cidadeId}`} className='credenciamento_modal_tag'>
                                             {cidadePorId.get(Number(cidadeId))?.nome || cidadeId}
                                             <button type='button' onClick={() => removerCidadeSecundaria(cidadeId)}>x</button>
+                                        </span>
+                                    ))}
+                                    {cidadesSecundariasNovas.map((nomeCidade) => (
+                                        <span key={`tag-cidade-nova-${nomeCidade}`} className='credenciamento_modal_tag'>
+                                            {nomeCidade}
+                                            <button type='button' onClick={() => removerCidadeSecundariaNova(nomeCidade)}>x</button>
                                         </span>
                                     ))}
                                 </div>
@@ -1092,11 +1377,6 @@ const Credenciamento_main = () => {
                             <button type='button' className='credenciamento_main_action_btn secondary' onClick={resetarModal}>Cancelar</button>
                         </div>
 
-                        <datalist id='credenciamento-cidades'>
-                            {nomesCidadesExistentes.map((nome) => (
-                                <option key={`cidade-list-${nome}`} value={nome} />
-                            ))}
-                        </datalist>
                     </div>
                 </div>
             )}

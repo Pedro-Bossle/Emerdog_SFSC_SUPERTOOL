@@ -27,17 +27,43 @@
 
 .credenciamento_main_filters {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-end;
-    gap: 8px;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
     text-align: center;
-    padding: 0.7em 0.9em;
-    margin: 0.75em auto;
-    max-width: 1500px;
+    padding: 0.5em 0.7em;
+    margin: 0.55em auto;
+    max-width: 1080px;
     background: #f8fbfd;
     border: 1px solid #d7e8f2;
-    border-radius: 12px;
+    border-radius: 10px;
+}
+
+.credenciamento_main_filters_layout {
+    display: flex;
+    width: 100%;
+    gap: 12px;
+    align-items: stretch;
+}
+
+.credenciamento_main_filters_selectors {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.credenciamento_main_filters_row {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(170px, 1fr));
+    gap: 6px;
+    align-items: end;
+}
+
+.credenciamento_main_filters_selectors .credenciamento_main_filters_row:first-child {
+    grid-template-columns: minmax(170px, 1.5fr) minmax(170px, 1.5fr) minmax(170px, 1fr);
 }
 
 .credenciamento_main_filter_item {
@@ -49,25 +75,26 @@
 
 .credenciamento_main_filter_item p {
     margin: 0;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 600;
     color: var(--azul-escuro);
 }
 
 .credenciamento_main_input,
 .credenciamento_main_select {
-    height: 34px;
-    padding: 6px 10px;
-    border-radius: 7px;
+    height: 30px;
+    padding: 4px 8px;
+    border-radius: 6px;
     border: 1px solid var(--azul-destaque);
     background: #fff;
-    min-width: 165px;
-    font-size: 0.88rem;
+    min-width: 150px;
+    font-size: 0.82rem;
     font-family: inherit;
 }
 
 .credenciamento_main_filter_busca .credenciamento_main_input {
-    min-width: 300px;
+    width: 100%;
+    min-width: 0;
 }
 
 .credenciamento_main_action_btn {
@@ -75,17 +102,54 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    height: 34px;
-    padding: 0 10px;
-    border-radius: 7px;
+    height: 30px;
+    padding: 0 9px;
+    border-radius: 6px;
     border: 1px solid var(--azul-destaque);
     background: #e8f5ff;
     color: #0a5d96;
     font-weight: 700;
-    font-size: 0.84rem;
+    font-size: 0.8rem;
     white-space: nowrap;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.credenciamento_main_filters_row .credenciamento_main_action_btn {
+    width: 100%;
+}
+
+.credenciamento_main_filters_selectors .credenciamento_main_filters_row:last-child {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 8px;
+}
+
+.credenciamento_main_filters_selectors .credenciamento_main_filters_row:last-child .credenciamento_main_filter_item {
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+}
+
+.credenciamento_main_filters_selectors .credenciamento_main_filters_row:last-child .credenciamento_main_filter_item p {
+    min-width: 34px;
+    text-align: right;
+}
+
+.credenciamento_main_filters_actions {
+    width: 200px;
+    min-width: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+
+.credenciamento_main_filters_actions .credenciamento_main_action_btn {
+    width: 170px;
 }
 
 .credenciamento_main_action_btn.secondary {
