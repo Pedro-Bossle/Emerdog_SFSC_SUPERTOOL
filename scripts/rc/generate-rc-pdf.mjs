@@ -169,7 +169,9 @@ const montarPrestadoresRc = (base, cidadesSelecionadas) => {
         const especialidadesDoPrestador = especialidadesPorPrestador.get(Number(prestador.id)) || []
         const especialidadePrincipalRel = especialidadesDoPrestador.find((item) => item.principal)
         const especialidadePrincipalId = Number(prestador.especialidade_id || especialidadePrincipalRel?.especialidade_id || 0)
-        const especialidadePrincipalNome = especialidadePorId.get(especialidadePrincipalId)?.nome || '-'
+        const especialidadePrincipalObj = especialidadePorId.get(especialidadePrincipalId)
+        const especialidadePrincipalNome = especialidadePrincipalObj?.nome || '-'
+        const tipoEspecialidade = normalizarTexto(especialidadePrincipalObj?.tipo || '')
         const situacaoDescricao = situacaoPorId.get(Number(prestador.situacao_id))?.descricao || '-'
         const estabelecimentosVinculados = (estabelecimentosPorVeterinario.get(Number(prestador.id)) || [])
             .map((rel) => prestadorPorId.get(Number(rel.estabelecimento_id)))
@@ -184,6 +186,7 @@ const montarPrestadoresRc = (base, cidadesSelecionadas) => {
             cidadePrincipalNome,
             cidadesSecundarias,
             especialidadePrincipalNome,
+            tipoEspecialidade,
             situacaoDescricao,
             telefoneEfetivo,
             modalidadeEfetiva,
@@ -212,20 +215,24 @@ const montarPrestadoresRc = (base, cidadesSelecionadas) => {
 }
 
 const gerarHtmlCards = (cardsPorPagina, pageWidthPt, pageHeightPt) => {
+    const pageWidthIn = Number(pageWidthPt) / 72
+    const pageHeightIn = Number(pageHeightPt) / 72
     const pages = cardsPorPagina
         .map((cards) => {
             const blocos = cards
                 .map((item) => {
                     const especialidade = escaparHtml(item.especialidadePrincipalNome || '-')
                     const nome = escaparHtml(item.nome || '-')
-                    const atendimento = escaparHtml(String(item.modalidadeEfetiva || item.endereco || '-').trim())
+                    const baseAtendimento = String(item.modalidadeEfetiva || item.endereco || '-').trim()
+                    const atendimentoLabel = baseAtendimento.replace(/^atendimento[\s:-]*/i, '').trim() || '-'
+                    const atendimento = escaparHtml(atendimentoLabel)
                     const telefone = escaparHtml(formatarTelefone(item.telefoneEfetivo || item.telefone || '-'))
                     return `
                         <article class="card">
                             <header class="card-topo">${especialidade}</header>
                             <div class="card-corpo">
                                 <h3>${nome}</h3>
-                                <p><span class="icon icon-service"></span><span>Atendimento ${atendimento}</span></p>
+                                <p><span class="icon icon-service"></span><span>${atendimento}</span></p>
                                 <p><span class="icon icon-phone"></span><span>${telefone}</span></p>
                             </div>
                         </article>
@@ -242,28 +249,31 @@ const gerarHtmlCards = (cardsPorPagina, pageWidthPt, pageHeightPt) => {
           <head>
             <meta charset="utf-8" />
             <style>
-              @page { size: ${pageWidthPt}pt ${pageHeightPt}pt; margin: 0; }
+              @page { size: ${pageWidthIn}in ${pageHeightIn}in; margin: 0; }
               html, body { margin: 0; padding: 0; }
               body { font-family: Arial, Helvetica, sans-serif; background: transparent; }
               .sheet {
-                width: ${pageWidthPt}pt;
-                height: ${pageHeightPt}pt;
+                width: ${pageWidthIn}in;
+                height: ${pageHeightIn}in;
                 box-sizing: border-box;
-                padding: 98pt 14pt 0;
+                padding: 98pt 14pt 98pt;
                 page-break-after: always;
               }
               .sheet:last-child { page-break-after: auto; }
               .grade {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: repeat(5, minmax(0, 1fr));
                 gap: 12pt;
+                height: 100%;
+                align-items: stretch;
               }
               .card {
-                height: 95pt;
                 border-radius: 16pt;
                 border: 0.8pt solid #d9e6f0;
                 background: #fff;
                 overflow: hidden;
+                min-height: 0;
               }
               .card-topo {
                 height: 24pt;
@@ -283,6 +293,7 @@ const gerarHtmlCards = (cardsPorPagina, pageWidthPt, pageHeightPt) => {
                 padding: 8pt 10pt 7pt;
                 display: grid;
                 gap: 7pt;
+                min-height: 0;
               }
               .card-corpo h3 {
                 margin: 0;
@@ -304,9 +315,10 @@ const gerarHtmlCards = (cardsPorPagina, pageWidthPt, pageHeightPt) => {
                 gap: 6pt;
               }
               .card-corpo p span:last-child {
-                overflow: hidden;
-                text-overflow: ellipsis;
-                white-space: nowrap;
+                overflow-wrap: anywhere;
+                word-break: break-word;
+                white-space: normal;
+                line-height: 1.18;
               }
               .icon {
                 width: 12pt;
@@ -342,6 +354,8 @@ const chunk = (arr, size) => {
     return resultado
 }
 
+const ptParaIn = (pt) => `${Number(pt) / 72}in`
+
 const gerarOverlayComPuppeteer = async (cards, pageWidthPt, pageHeightPt) => {
     await fs.mkdir(path.dirname(TMP_OVERLAY_PATH), { recursive: true })
     const browser = await puppeteer.launch({ headless: true })
@@ -352,8 +366,8 @@ const gerarOverlayComPuppeteer = async (cards, pageWidthPt, pageHeightPt) => {
         await page.pdf({
             path: TMP_OVERLAY_PATH,
             printBackground: true,
-            width: `${pageWidthPt}pt`,
-            height: `${pageHeightPt}pt`,
+            width: ptParaIn(pageWidthPt),
+            height: ptParaIn(pageHeightPt),
             margin: { top: '0', right: '0', bottom: '0', left: '0' },
         })
     } finally {
