@@ -2,6 +2,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
+  "functions": {
+    "api/rc-pdf.js": {
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": "src/assets/rc/**"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",

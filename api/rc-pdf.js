@@ -1,6 +1,5 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import puppeteer from 'puppeteer'
 import { PDFDocument } from 'pdf-lib'
 import { createClient } from '@supabase/supabase-js'
 import { config as dotenvConfig } from 'dotenv'
@@ -9,6 +8,29 @@ dotenvConfig({ path: path.resolve(process.cwd(), '.env.local') })
 dotenvConfig()
 
 const TEMPLATE_PDF_PATH = path.resolve(process.cwd(), 'src', 'assets', 'rc', 'template_rc.pdf')
+
+const isServerless = !!(
+    process.env.VERCEL ||
+    process.env.AWS_LAMBDA_FUNCTION_NAME ||
+    process.env.LAMBDA_TASK_ROOT
+)
+
+const launchBrowser = async () => {
+    if (isServerless) {
+        const [{ default: chromium }, puppeteerCore] = await Promise.all([
+            import('@sparticuz/chromium'),
+            import('puppeteer-core'),
+        ])
+        return puppeteerCore.default.launch({
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(),
+            headless: chromium.headless,
+        })
+    }
+    const { default: puppeteer } = await import('puppeteer')
+    return puppeteer.launch({ headless: true })
+}
 
 const normalizarTexto = (texto) =>
     String(texto || '')
@@ -302,11 +324,11 @@ const gerarPdfBuffer = async (cidadesSelecionadas) => {
     const pageRef = templateDoc.getPage(templateDoc.getPageCount() > 1 ? 1 : 0)
     const { width, height } = pageRef.getSize()
 
-    const browser = await puppeteer.launch({ headless: true })
+    const browser = await launchBrowser()
     let overlayBytes
     try {
         const page = await browser.newPage()
-        await page.setContent(gerarHtmlCards(chunk(cards, 10), width, height), { waitUntil: 'networkidle0' })
+        await page.setContent(gerarHtmlCards(chunk(cards, 10), width, height), { waitUntil: 'load' })
         overlayBytes = await page.pdf({
             printBackground: true,
             width: ptParaIn(width),
