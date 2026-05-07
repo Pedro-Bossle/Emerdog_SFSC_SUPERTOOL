@@ -55,6 +55,8 @@ const classeCorSituacao = (descricao) => {
     return ''
 }
 
+const textoCredenciado = (descricao) => normalizarTexto(descricao).includes('CREDENCIAD')
+
 const Credenciamento_main = () => {
     const [loading, setLoading] = useState(false)
     const [erro, setErro] = useState('')
@@ -86,6 +88,10 @@ const Credenciamento_main = () => {
     const [paginaAlvoInput, setPaginaAlvoInput] = useState('1')
     const [confirmacaoExclusao, setConfirmacaoExclusao] = useState(null)
     const [prestadorEditandoId, setPrestadorEditandoId] = useState(null)
+    const [modalRcAberto, setModalRcAberto] = useState(false)
+    const [rcCidadeBusca, setRcCidadeBusca] = useState('')
+    const [rcCidadesSelecionadas, setRcCidadesSelecionadas] = useState([])
+    const [rcGerando, setRcGerando] = useState(false)
     const scrollPosAntesSalvarRef = useRef(0)
 
     const [modalAberto, setModalAberto] = useState(false)
@@ -299,6 +305,29 @@ const Credenciamento_main = () => {
             .sort((a, b) => (a[0] < b[0] ? 1 : -1))
             .map(([valor, label]) => ({ valor, label }))
     }, [linhasCompletas])
+
+    const mapaCidadePrestadoresCredenciados = useMemo(() => {
+        const mapa = new Map()
+        linhasCompletas.forEach((item) => {
+            if (!textoCredenciado(item.situacaoDescricao)) return
+            const adicionar = (nomeCidade) => {
+                const nome = String(nomeCidade || '').trim()
+                if (!nome || nome === '-') return
+                if (!mapa.has(nome)) mapa.set(nome, new Map())
+                mapa.get(nome).set(Number(item.id), item)
+            }
+            adicionar(item.cidadePrincipalNome)
+            item.cidadesSecundarias.forEach(adicionar)
+        })
+        return mapa
+    }, [linhasCompletas])
+
+    const opcoesCidadesRc = useMemo(() => {
+        const termo = normalizarTexto(rcCidadeBusca)
+        return [...mapaCidadePrestadoresCredenciados.keys()]
+            .filter((nome) => !termo || normalizarTexto(nome).includes(termo))
+            .sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }))
+    }, [mapaCidadePrestadoresCredenciados, rcCidadeBusca])
 
     const linhasFiltradas = useMemo(() => {
         const termo1 = normalizarTexto(termoBusca1)
@@ -825,6 +854,54 @@ const Credenciamento_main = () => {
         }
     }
 
+    const alternarCidadeRc = (nomeCidade) => {
+        setRcCidadesSelecionadas((anteriores) =>
+            anteriores.includes(nomeCidade)
+                ? anteriores.filter((nome) => nome !== nomeCidade)
+                : [...anteriores, nomeCidade]
+        )
+    }
+
+    const abrirModalRc = () => {
+        setRcCidadeBusca('')
+        setRcCidadesSelecionadas([])
+        setModalRcAberto(true)
+    }
+
+    const gerarPdfRc = async () => {
+        if (!rcCidadesSelecionadas.length) {
+            setErro('Selecione pelo menos uma cidade para gerar a RC.')
+            return
+        }
+        try {
+            setRcGerando(true)
+            const response = await fetch('/api/rc-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cidades: rcCidadesSelecionadas }),
+            })
+            const erroJson = await response.clone().json().catch(() => null)
+            if (!response.ok) {
+                if (response.status === 404) {
+                    throw new Error('API RC não encontrada no dev local. Rode "npm run dev:api" e mantenha "npm run dev" em paralelo.')
+                }
+                throw new Error(erroJson?.error || 'Falha ao gerar PDF da RC.')
+            }
+            const blob = await response.blob()
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `RC_${new Date().toISOString().slice(0, 10)}.pdf`
+            a.click()
+            URL.revokeObjectURL(url)
+            setModalRcAberto(false)
+        } catch (error) {
+            setErro(`Falha ao gerar RC: ${error?.message || error}`)
+        } finally {
+            setRcGerando(false)
+        }
+    }
+
     return (
         <div className='credenciamento_main'>
             <h1>Credenciamento - Principal</h1>
@@ -919,7 +996,7 @@ const Credenciamento_main = () => {
                                     ＋ Novo cadastro
                                 </button>
                             )}
-                            <button type='button' className='credenciamento_main_action_btn secondary'>
+                            <button type='button' className='credenciamento_main_action_btn secondary' onClick={abrirModalRc}>
                                 Imprimir RC
                             </button>
                         </div>
@@ -1120,6 +1197,43 @@ const Credenciamento_main = () => {
                     </>
                 )}
             </div>
+
+            {modalRcAberto && (
+                <div className='credenciamento_modal_backdrop' onClick={() => setModalRcAberto(false)}>
+                    <div className='credenciamento_modal credenciamento_rc_modal' onClick={(event) => event.stopPropagation()}>
+                        <h3>Gerar RC por cidades</h3>
+                        <label className='credenciamento_modal_full'>
+                            <span>Buscar cidades</span>
+                            <input
+                                type='text'
+                                value={rcCidadeBusca}
+                                onChange={(event) => setRcCidadeBusca(event.target.value)}
+                                placeholder='Digite para filtrar cidades'
+                            />
+                        </label>
+                        <div className='credenciamento_rc_cidades_lista'>
+                            {opcoesCidadesRc.map((cidade) => (
+                                <label key={`rc-cidade-${cidade}`} className='credenciamento_rc_cidade_item'>
+                                    <input
+                                        type='checkbox'
+                                        checked={rcCidadesSelecionadas.includes(cidade)}
+                                        onChange={() => alternarCidadeRc(cidade)}
+                                    />
+                                    <span>{cidade}</span>
+                                </label>
+                            ))}
+                        </div>
+                        <div className='credenciamento_modal_actions'>
+                            <button type='button' className='credenciamento_main_action_btn' onClick={gerarPdfRc} disabled={rcGerando}>
+                                {rcGerando ? 'Gerando...' : 'Gerar RC'}
+                            </button>
+                            <button type='button' className='credenciamento_main_action_btn secondary' onClick={() => setModalRcAberto(false)}>
+                                Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {modalAberto && (
                 <div className='credenciamento_modal_backdrop' onClick={resetarModal}>

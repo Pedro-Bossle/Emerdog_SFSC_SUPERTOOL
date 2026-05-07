@@ -8,4 +8,9 @@ export default defineConfig(({ command }) => ({
     ? '/'
     : (process.env.VERCEL ? '/' : '/Emerdog_SFSC_SUPERTOOL/'),
   plugins: [react()],
+  server: {
+    proxy: {
+      '/api': 'http://localhost:3000',
+    },
+  },
 }))

@@ -625,6 +625,30 @@
     justify-content: flex-end;
 }
 
+.credenciamento_rc_modal {
+    width: min(680px, calc(100vw - 24px));
+}
+
+.credenciamento_rc_cidades_lista {
+    border: 1px solid #d5e7f3;
+    border-radius: 10px;
+    background: #fff;
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 8px 10px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 10px;
+}
+
+.credenciamento_rc_cidade_item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: #2a4a63;
+}
+
 .credenciamento_switch {
     display: inline-flex;
     align-items: center;
