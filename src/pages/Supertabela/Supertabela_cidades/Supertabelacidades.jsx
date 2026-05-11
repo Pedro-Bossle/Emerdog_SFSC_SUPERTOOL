@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
+import { PERMISSION_KEYS, hasStoredPermission } from '../../../lib/accessControl'
+import { buscarTodosPaginado, getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelacidades.css'
 
 const Supertabelacidades = () => {
-    const [somenteLeitura] = useState(() => getReadOnlyFlag())
+    const [somenteLeitura] = useState(() => getReadOnlyFlag() || !hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_EDIT))
     const [cidades, setCidades] = useState([])
     const [regioes, setRegioes] = useState([])
     const [categorias, setCategorias] = useState([])
@@ -91,29 +92,16 @@ const Supertabelacidades = () => {
     }
 
     const carregarResumoRepasses = useCallback(async () => {
-        const tamanhoPagina = 1000
-        let inicio = 0
-        let acumulado = []
+        const { data, error } = await buscarTodosPaginado(() =>
+            supabase.from('repasses').select('cidade_id, procedimento_id')
+        )
 
-        while (true) {
-            const fim = inicio + tamanhoPagina - 1
-            const { data, error } = await supabase
-                .from('repasses')
-                .select('cidade_id, procedimento_id')
-                .range(inicio, fim)
-
-            if (error) {
-                mostrarErroToast(`Erro ao atualizar contagem de procedimentos: ${error.message}`)
-                return
-            }
-
-            const lote = data || []
-            acumulado = [...acumulado, ...lote]
-            if (lote.length < tamanhoPagina) break
-            inicio += tamanhoPagina
+        if (error) {
+            mostrarErroToast(`Erro ao atualizar contagem de procedimentos: ${error.message}`)
+            return
         }
 
-        setRepassesResumo(acumulado)
+        setRepassesResumo(data || [])
     }, [])
 
     const carregarBase = useCallback(async () => {
@@ -132,7 +120,12 @@ const Supertabelacidades = () => {
                 supabase.from('regioes').select('id, nome').order('nome', { ascending: true }),
                 supabase.from('categorias').select('id, nome').gte('id', 3).lte('id', 25).order('id', { ascending: true }),
                 supabase.from('portes').select('id, nome').order('id', { ascending: true }),
-                supabase.from('procedimentos').select('codigo, nome, categoria_id').order('codigo', { ascending: true }),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('procedimentos')
+                        .select('codigo, nome, categoria_id')
+                        .order('codigo', { ascending: true })
+                ),
             ])
 
             if (errCidades || errRegioes || errCategorias || errPortes || errProcedimentos) {
@@ -169,10 +162,12 @@ const Supertabelacidades = () => {
             setLoading(true)
             setErroDetalhe('')
 
-            const { data: repassesData, error: errRepasses } = await supabase
-                .from('repasses')
-                .select('id, procedimento_id, porte_id, valor')
-                .eq('cidade_id', cidadeId)
+            const { data: repassesData, error: errRepasses } = await buscarTodosPaginado(() =>
+                supabase
+                    .from('repasses')
+                    .select('id, procedimento_id, porte_id, valor')
+                    .eq('cidade_id', cidadeId)
+            )
 
             if (errRepasses) {
                 setErroDetalhe(`Erro ao buscar repasses da cidade: ${errRepasses.message}`)
@@ -884,31 +879,62 @@ const Supertabelacidades = () => {
             }
 
             const codigosValidos = (procedimentosValidos || []).map((item) => String(item.codigo).toUpperCase())
+            const codigosNaoEncontrados = codigos.filter(
+                (cod) => !codigosValidos.includes(String(cod).toUpperCase())
+            )
             if (codigosValidos.length === 0) {
                 mostrarErroToast('Nenhum código informado foi encontrado na base.')
                 return
             }
 
-            const payload = codigosValidos.flatMap((codigo) =>
-                porteIds.map((porteId) => ({
-                    cidade_id: Number(cidadeId),
-                    procedimento_id: codigo,
-                    porte_id: Number(porteId),
-                    valor: 0,
-                }))
+            const { data: existentes, error: errExistentes } = await buscarTodosPaginado(() =>
+                supabase
+                    .from('repasses')
+                    .select('procedimento_id')
+                    .eq('cidade_id', Number(cidadeId))
+                    .in('procedimento_id', codigosValidos)
             )
 
-            const { error: errInsert } = await supabase
-                .from('repasses')
-                .upsert(payload, { onConflict: 'procedimento_id,cidade_id,porte_id' })
-
-            if (errInsert) {
-                mostrarErroToast(`Erro ao inserir procedimentos em massa: ${errInsert.message}`)
+            if (errExistentes) {
+                mostrarErroToast(`Erro ao verificar procedimentos existentes: ${errExistentes.message}`)
                 return
+            }
+
+            const codigosExistentes = new Set(
+                (existentes || []).map((item) => String(item.procedimento_id).toUpperCase())
+            )
+            const codigosNovos = codigosValidos.filter((cod) => !codigosExistentes.has(cod))
+            const totalIgnorados = codigosValidos.length - codigosNovos.length
+
+            let totalInseridos = 0
+            let mensagemErro = ''
+            if (codigosNovos.length > 0) {
+                const payload = codigosNovos.flatMap((codigo) =>
+                    porteIds.map((porteId) => ({
+                        cidade_id: Number(cidadeId),
+                        procedimento_id: codigo,
+                        porte_id: Number(porteId),
+                        valor: 0,
+                    }))
+                )
+
+                const { error: errInsert } = await supabase.from('repasses').insert(payload)
+                if (errInsert) {
+                    mensagemErro = errInsert.message
+                } else {
+                    totalInseridos = codigosNovos.length
+                }
             }
 
             setCodigosInicializacaoCidade('')
             await Promise.all([carregarBase(), buscarTabelaCidade(), carregarResumoRepasses()])
+
+            const partes = []
+            if (totalInseridos > 0) partes.push(`${totalInseridos} adicionado(s)`)
+            if (totalIgnorados > 0) partes.push(`${totalIgnorados} já existente(s) ignorado(s)`)
+            if (codigosNaoEncontrados.length > 0) partes.push(`${codigosNaoEncontrados.length} código(s) não encontrado(s): ${codigosNaoEncontrados.join(', ')}`)
+            if (mensagemErro) partes.push(`falha ao inserir: ${mensagemErro}`)
+            if (partes.length > 0) mostrarErroToast(`Adição em massa concluída — ${partes.join(' · ')}.`)
         } catch (error) {
             mostrarErroToast(`Falha ao inserir procedimentos em massa: ${error.message}`)
         } finally {
@@ -945,10 +971,12 @@ const Supertabelacidades = () => {
                 return
             }
 
-            const { data: repassesOrigem, error: errRepassesOrigem } = await supabase
-                .from('repasses')
-                .select('procedimento_id, porte_id, valor')
-                .eq('cidade_id', cidadeDuplicarOrigem.id)
+            const { data: repassesOrigem, error: errRepassesOrigem } = await buscarTodosPaginado(() =>
+                supabase
+                    .from('repasses')
+                    .select('procedimento_id, porte_id, valor')
+                    .eq('cidade_id', cidadeDuplicarOrigem.id)
+            )
 
             if (errRepassesOrigem) {
                 mostrarErroToast(`Cidade criada, mas houve erro ao copiar tabela: ${errRepassesOrigem.message}`)

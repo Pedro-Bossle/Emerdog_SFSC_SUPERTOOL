@@ -116,6 +116,38 @@
     white-space: nowrap;
 }
 
+.sidebar_admin_btn {
+    width: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    border-radius: 9px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    transition: background-color 180ms ease, transform 180ms ease, border-color 180ms ease;
+    margin-bottom: 8px;
+}
+
+.sidebar_admin_btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(255, 255, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+.sidebar_admin_icon {
+    font-size: 1rem;
+}
+
+.sidebar_admin_text {
+    font-size: 0.86rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
 .sidebar_group {
     display: flex;
     flex-direction: column;
@@ -248,5 +280,9 @@
 }
 
 .sidebar.closed .toggle_text {
+    display: none;
+}
+
+.sidebar.closed .sidebar_admin_text {
     display: none;
 }

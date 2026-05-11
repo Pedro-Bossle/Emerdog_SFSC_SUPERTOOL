@@ -1,9 +1,16 @@
 import { Navigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
-import { supabase, setReadOnlyFlag } from '../../lib/supabase'
+import {
+    hasPermission,
+    normalizarProfileAcesso,
+    setStoredAccessProfile,
+    usuarioSomenteLeituraGlobal,
+} from '../../lib/accessControl'
+import { clearAccessState, supabase, setReadOnlyFlag } from '../../lib/supabase'
 
-const PrivateRoute = ({ children }) => {
+const PrivateRoute = ({ children, permission }) => {
     const [session, setSession] = useState(undefined)
+    const [profile, setProfile] = useState(undefined)
 
     useEffect(() => {
         const carregarSessaoEPermissoes = async () => {
@@ -11,25 +18,41 @@ const PrivateRoute = ({ children }) => {
             const sessaoAtual = data.session
             setSession(sessaoAtual)
             if (!sessaoAtual?.user?.id) {
-                setReadOnlyFlag(false)
+                clearAccessState()
+                setProfile(null)
                 return
             }
-            const { data: profileData, error } = await supabase
+            let { data: profileData, error } = await supabase
                 .from('profiles')
-                .select('credenciamento_read_only')
+                .select('id, name, email, credenciamento_read_only, permissions')
                 .eq('id', sessaoAtual.user.id)
                 .single()
+            if (error && String(error.message || '').includes('email')) {
+                const fallback = await supabase
+                    .from('profiles')
+                    .select('id, name, credenciamento_read_only, permissions')
+                    .eq('id', sessaoAtual.user.id)
+                    .single()
+                profileData = fallback.data
+                error = fallback.error
+            }
             if (error) {
-                setReadOnlyFlag(false)
+                clearAccessState()
+                setProfile(null)
                 return
             }
-            setReadOnlyFlag(!!profileData?.credenciamento_read_only)
+            const perfilNormalizado = normalizarProfileAcesso(profileData)
+            setStoredAccessProfile(perfilNormalizado)
+            setReadOnlyFlag(usuarioSomenteLeituraGlobal(perfilNormalizado))
+            setProfile(perfilNormalizado)
         }
         carregarSessaoEPermissoes()
     }, [])
 
     if (session === undefined) return <p>Carregando...</p>
-    if (!session) return <Navigate to="/login" replace />
+    if (!session) return <Navigate to="/" replace />
+    if (permission && profile === undefined) return <p>Carregando...</p>
+    if (permission && (!profile || !hasPermission(profile, permission))) return <Navigate to="/home" replace />
 
     return children
 }

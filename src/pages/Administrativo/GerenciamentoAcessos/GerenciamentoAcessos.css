@@ -1,0 +1,232 @@
+.gerenciamento_acessos {
+    width: 100%;
+    min-height: 100%;
+    padding: 28px;
+    color: #1f3a4f;
+}
+
+.gerenciamento_acessos_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.gerenciamento_acessos_header h1 {
+    margin: 0;
+    color: var(--azul-escuro, #123e59);
+}
+
+.gerenciamento_acessos_header p {
+    margin: 6px 0 0;
+    color: #547084;
+}
+
+.gerenciamento_acessos_kicker {
+    margin: 0 0 4px !important;
+    color: #0f74b9 !important;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 0.75rem;
+}
+
+.gerenciamento_acessos_header button,
+.gerenciamento_acessos_form button,
+.gerenciamento_acessos_acoes button {
+    border: 1px solid #bfd7e8;
+    background: #ffffff;
+    color: #174964;
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.gerenciamento_acessos_header button:disabled,
+.gerenciamento_acessos_form button:disabled,
+.gerenciamento_acessos_acoes button:disabled {
+    cursor: wait;
+    opacity: 0.65;
+}
+
+.gerenciamento_acessos_form button,
+.gerenciamento_acessos_acoes .is-primary {
+    background: #0f74b9;
+    border-color: #0f74b9;
+    color: #ffffff;
+}
+
+.gerenciamento_acessos_alerta {
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.gerenciamento_acessos_alerta.is-success {
+    background: #e8f6ec;
+    border: 1px solid #b7dfc2;
+    color: #1b6b34;
+}
+
+.gerenciamento_acessos_alerta.is-error {
+    background: #fdecec;
+    border: 1px solid #f0b5b5;
+    color: #9a2424;
+}
+
+.gerenciamento_acessos_grid {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.9fr) minmax(260px, 0.8fr) minmax(340px, 1.2fr);
+    gap: 16px;
+    align-items: start;
+}
+
+.gerenciamento_acessos_card {
+    background: #ffffff;
+    border: 1px solid #d8e6ef;
+    border-radius: 16px;
+    box-shadow: 0 10px 28px rgba(16, 49, 73, 0.08);
+    padding: 16px;
+}
+
+.gerenciamento_acessos_card h2 {
+    margin: 0 0 12px;
+    font-size: 1.05rem;
+    color: #123e59;
+}
+
+.gerenciamento_acessos_form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.gerenciamento_acessos_form label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #31566f;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.gerenciamento_acessos_form input,
+.gerenciamento_acessos_lista_header input {
+    width: 100%;
+    border: 1px solid #c7dceb;
+    border-radius: 10px;
+    padding: 9px 10px;
+    color: #1f3a4f;
+    background: #ffffff;
+}
+
+.gerenciamento_acessos_lista_header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.gerenciamento_acessos_lista {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 620px;
+    overflow-y: auto;
+}
+
+.gerenciamento_acessos_usuario {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    border: 1px solid #dbe8f1;
+    background: #f7fbfe;
+    color: #254a64;
+    border-radius: 12px;
+    padding: 10px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.gerenciamento_acessos_usuario.is-active {
+    border-color: #0f74b9;
+    background: #e8f5ff;
+}
+
+.gerenciamento_acessos_usuario span {
+    color: #5d7384;
+    font-size: 0.82rem;
+    word-break: break-all;
+}
+
+.gerenciamento_acessos_permissoes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gerenciamento_acessos_permissao_grupo {
+    border: 1px solid #e0ebf3;
+    border-radius: 12px;
+    padding: 10px;
+    background: #f9fcfe;
+}
+
+.gerenciamento_acessos_permissao_grupo h4 {
+    margin: 0 0 8px;
+    color: #0f6299;
+    font-size: 0.92rem;
+}
+
+.gerenciamento_acessos_permissao_item {
+    display: grid !important;
+    grid-template-columns: 18px 1fr;
+    gap: 9px !important;
+    align-items: start;
+    padding: 8px 0;
+    font-weight: 400 !important;
+}
+
+.gerenciamento_acessos_permissao_item + .gerenciamento_acessos_permissao_item {
+    border-top: 1px solid #e6eef5;
+}
+
+.gerenciamento_acessos_permissao_item input {
+    margin-top: 2px;
+}
+
+.gerenciamento_acessos_permissao_item span {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gerenciamento_acessos_permissao_item small {
+    color: #5b7488;
+    font-size: 0.78rem;
+    line-height: 1.35;
+}
+
+.gerenciamento_acessos_acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.gerenciamento_acessos_vazio {
+    color: #5b7488;
+    margin: 0;
+    padding: 10px 0;
+}
+
+@media (max-width: 1180px) {
+    .gerenciamento_acessos_grid {
+        grid-template-columns: 1fr;
+    }
+}

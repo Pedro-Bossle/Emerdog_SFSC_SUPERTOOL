@@ -5,7 +5,14 @@ import iconHide from "../../assets/sidepanel-ico-hide.png";
 import logoBranco from "../../assets/logo_branco.png";
 import logoE from "../../assets/logo_E.png";
 import { Link, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
+import {
+    PERMISSION_KEYS,
+    getStoredAccessProfile,
+    hasPermission,
+    normalizarProfileAcesso,
+    setStoredAccessProfile,
+} from '../../lib/accessControl';
+import { clearAccessState, supabase } from '../../lib/supabase';
 
 /**
  * Como adicionar novos grupos:
@@ -35,21 +42,23 @@ const menuItems = [
     {
         id: 'supertabela',
         label: 'Super-Tabela',
+        permission: PERMISSION_KEYS.SUPERTABELA_VIEW,
         children: [
-            { label: 'Visão geral', href: '/supertabelamain' },
-            { label: 'Cidades', href: '/supertabela/cidades' },
-            { label: 'Planos', href: '/supertabela/planos' },
-            { label: 'Procedimentos', href: '/supertabela/procedimentos' },
-            { label: 'Negociações', href: '/supertabela/negociacoes' },
-            { label: 'Documentação', href: '/supertabeladoc' },
+            { label: 'Visão geral', href: '/supertabelamain', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
+            { label: 'Cidades', href: '/supertabela/cidades', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
+            { label: 'Planos', href: '/supertabela/planos', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
+            { label: 'Procedimentos', href: '/supertabela/procedimentos', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
+            { label: 'Negociações', href: '/supertabela/negociacoes', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
+            { label: 'Documentação', href: '/supertabeladoc', permission: PERMISSION_KEYS.SUPERTABELA_VIEW },
         ],
     },
     {
         id: 'credenciamento',
         label: 'Credenciamento',
+        permission: PERMISSION_KEYS.CREDENCIAMENTO_VIEW,
         children: [
-            { label: 'Principal', href: '/credenciamento/principal' },
-            { label: 'Documentação', href: '/credenciamentodoc' },
+            { label: 'Principal', href: '/credenciamento/principal', permission: PERMISSION_KEYS.CREDENCIAMENTO_VIEW },
+            { label: 'Documentação', href: '/credenciamentodoc', permission: PERMISSION_KEYS.CREDENCIAMENTO_VIEW },
 
         ],
     },
@@ -118,6 +127,7 @@ const menuItems = [
 
 const Sidebar = ({ open, onToggleManual, isPinned }) => {
     const navigate = useNavigate()
+    const [accessProfile, setAccessProfile] = useState(() => getStoredAccessProfile())
     const [darkModeAtivo, setDarkModeAtivo] = useState(() => {
         if (typeof window === 'undefined') return false
         return window.localStorage.getItem('sfsc-dark-mode') === '1'
@@ -128,31 +138,71 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
      */
     const [openMenus, setOpenMenus] = useState({})
 
+    const menuItemsVisiveis = menuItems
+        .map((item) => {
+            if (item.permission && !hasPermission(accessProfile, item.permission)) return null
+            const children = item.children.filter((child) => !child.permission || hasPermission(accessProfile, child.permission))
+            if (children.length === 0) return null
+            return { ...item, children }
+        })
+        .filter(Boolean)
+
+    useEffect(() => {
+        const carregarPerfil = async () => {
+            const { data: userData } = await supabase.auth.getUser()
+            const userId = userData?.user?.id
+            if (!userId) {
+                setAccessProfile(null)
+                return
+            }
+            let { data: profileData, error } = await supabase
+                .from('profiles')
+                .select('id, name, email, credenciamento_read_only, permissions')
+                .eq('id', userId)
+                .maybeSingle()
+            if (error && String(error.message || '').includes('email')) {
+                const fallback = await supabase
+                    .from('profiles')
+                    .select('id, name, credenciamento_read_only, permissions')
+                    .eq('id', userId)
+                    .maybeSingle()
+                profileData = fallback.data
+            }
+            if (!profileData) return
+            const profile = normalizarProfileAcesso(profileData)
+            setStoredAccessProfile(profile)
+            setAccessProfile(profile)
+        }
+        carregarPerfil()
+    }, [])
+
     // Inicializa todos fechados ao montar
     useEffect(() => {
         const initial = {}
-        menuItems.forEach((item) => {
+        menuItemsVisiveis.forEach((item) => {
             initial[item.id] = false
         })
         setOpenMenus(initial)
-    }, [])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [accessProfile?.id])
 
     // Se fechar a sidebar, fecha todos os submenus também
     useEffect(() => {
         if (!open) {
             const reset = {}
-            menuItems.forEach((item) => {
+            menuItemsVisiveis.forEach((item) => {
                 reset[item.id] = false
             })
             setOpenMenus(reset)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [open])
 
     const toggleMenu = (id) => {
         setOpenMenus((prev) => {
             const wasOpen = !!prev[id]
             const next = {}
-            menuItems.forEach((item) => {
+            menuItemsVisiveis.forEach((item) => {
                 next[item.id] = false
             })
             if (!wasOpen) {
@@ -168,6 +218,7 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
             alert('Erro ao sair da sessão')
             return
         }
+        clearAccessState()
         navigate('/', { replace: true })
     }
 
@@ -224,7 +275,7 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
                 </div>
 
                 <nav className='sidebar_nav'>
-                    {menuItems.map((item) => (
+                    {menuItemsVisiveis.map((item) => (
                         <div key={item.id} className="sidebar_group">
                             <button
                                 className="sidebar_group_btn"
@@ -257,6 +308,18 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
                 </nav>
 
                 <div className='sidebar_footer'>
+                    {hasPermission(accessProfile, PERMISSION_KEYS.ACCESS_MANAGE) && (
+                        <button
+                            type='button'
+                            className='sidebar_admin_btn'
+                            onClick={() => navigate('/administrativo/acessos')}
+                            title='Gerenciamento de Acessos'
+                        >
+                            <span className='sidebar_admin_icon' aria-hidden>🛡️</span>
+                            <span className='sidebar_admin_text'>Admin</span>
+                        </button>
+                    )}
+
                     <button onClick={onToggleManual} className="toggle_btn" title={isPinned ? 'Desafixar sidebar' : 'Fixar sidebar'}>
                         <img
                             src={open ? iconHide : iconShow}

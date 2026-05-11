@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
+import { PERMISSION_KEYS, hasStoredPermission } from '../../../lib/accessControl'
+import { buscarTodosPaginado, getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import '../Supertabela_main/Supertabelamain.css'
 import './Supertabelaprocedimentos.css'
 
@@ -57,7 +58,7 @@ const Supertabelaprocedimentos = () => {
     const ALTURA_LINHA_TABELA = 42
     const MAX_LINHAS_VISIVEIS = 10
     const LINHAS_OVERSCAN = 6
-    const [somenteLeitura] = useState(() => getReadOnlyFlag())
+    const [somenteLeitura] = useState(() => getReadOnlyFlag() || !hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_EDIT))
 
     const [planos, setPlanos] = useState([])
     const [categorias, setCategorias] = useState([])
@@ -116,8 +117,15 @@ const Supertabelaprocedimentos = () => {
             ] = await Promise.all([
                 supabase.from('planos').select('id, nome').order('id', { ascending: true }),
                 supabase.from('categorias').select('id, nome').gte('id', 3).lte('id', 25).order('id', { ascending: true }),
-                supabase.from('procedimentos').select('codigo, nome, categoria_id, plano_base_id').order('codigo', { ascending: true }),
-                supabase.from('planos_cidade').select('procedimento_cod, plano_id'),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('procedimentos')
+                        .select('codigo, nome, categoria_id, plano_base_id')
+                        .order('codigo', { ascending: true })
+                ),
+                buscarTodosPaginado(() =>
+                    supabase.from('planos_cidade').select('procedimento_cod, plano_id')
+                ),
             ])
 
             if (errPlanos || errCategorias || errProcedimentos || errPlanosCidade) {
@@ -360,6 +368,12 @@ const Supertabelaprocedimentos = () => {
         const chaveAnterior = linha.planoBaseChave
         const indiceBase = ORDEM_PLANOS.indexOf(novaChavePlanoBase)
         if (indiceBase < 0) return
+        const planoBaseId = Number(mapaPlanos[novaChavePlanoBase]?.id || 0)
+        const planoBaseAnteriorId = Number(mapaPlanos[chaveAnterior]?.id || 0)
+        if (!planoBaseId) {
+            mostrarErroToast('Não foi possível mapear o plano base selecionado.')
+            return
+        }
 
         const planoIdsPermitidos = ORDEM_PLANOS
             .slice(indiceBase)
@@ -378,12 +392,30 @@ const Supertabelaprocedimentos = () => {
             )
         )
 
+        const { error: errPlanoBase } = await supabase
+            .from('procedimentos')
+            .update({ plano_base_id: planoBaseId })
+            .eq('codigo', linha.codigo)
+
+        if (errPlanoBase) {
+            setLinhas((anteriores) =>
+                anteriores.map((item) =>
+                    item.codigo === linha.codigo ? { ...item, planoBaseChave: chaveAnterior } : item
+                )
+            )
+            mostrarErroToast(`Erro ao salvar plano base: ${errPlanoBase.message}`)
+            return
+        }
+
         const { data: registros, error: errBuscar } = await supabase
             .from('planos_cidade')
             .select('id, plano_id, regiao_id')
             .eq('procedimento_cod', linha.codigo)
 
         if (errBuscar) {
+            if (planoBaseAnteriorId) {
+                await supabase.from('procedimentos').update({ plano_base_id: planoBaseAnteriorId }).eq('codigo', linha.codigo)
+            }
             setLinhas((anteriores) =>
                 anteriores.map((item) =>
                     item.codigo === linha.codigo ? { ...item, planoBaseChave: chaveAnterior } : item
@@ -401,6 +433,9 @@ const Supertabelaprocedimentos = () => {
         if (idsExcluir.length > 0) {
             const { error: errExcluir } = await supabase.from('planos_cidade').delete().in('id', idsExcluir)
             if (errExcluir) {
+                if (planoBaseAnteriorId) {
+                    await supabase.from('procedimentos').update({ plano_base_id: planoBaseAnteriorId }).eq('codigo', linha.codigo)
+                }
                 setLinhas((anteriores) =>
                     anteriores.map((item) =>
                         item.codigo === linha.codigo ? { ...item, planoBaseChave: chaveAnterior } : item
@@ -441,6 +476,9 @@ const Supertabelaprocedimentos = () => {
         if (payloadInsercao.length > 0) {
             const { error: errInserir } = await supabase.from('planos_cidade').insert(payloadInsercao)
             if (errInserir) {
+                if (planoBaseAnteriorId) {
+                    await supabase.from('procedimentos').update({ plano_base_id: planoBaseAnteriorId }).eq('codigo', linha.codigo)
+                }
                 setLinhas((anteriores) =>
                     anteriores.map((item) =>
                         item.codigo === linha.codigo ? { ...item, planoBaseChave: chaveAnterior } : item

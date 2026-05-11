@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import './Supertabelamain.css'
-import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
+import { PERMISSION_KEYS, hasStoredPermission } from '../../../lib/accessControl'
+import { buscarTodosPaginado, getReadOnlyFlag, supabase } from '../../../lib/supabase'
 
 const Supertabelamain = () => {
     const ALTURA_LINHA_TABELA = 42
@@ -24,7 +25,7 @@ const Supertabelamain = () => {
     const [ordenacaoPorCategoria, setOrdenacaoPorCategoria] = useState({})
     const [headerCompactProgress, setHeaderCompactProgress] = useState(0)
     const [edicaoAtiva, setEdicaoAtiva] = useState(false)
-    const [somenteLeitura] = useState(() => getReadOnlyFlag())
+    const [somenteLeitura] = useState(() => getReadOnlyFlag() || !hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_EDIT))
     const [edicoesLocais, setEdicoesLocais] = useState({})
     const [scrollTopoPorCategoria, setScrollTopoPorCategoria] = useState({})
 
@@ -206,21 +207,27 @@ const Supertabelamain = () => {
                 .filter(Boolean)
                 .map((id) => Number(id))
 
-            const procedimentosResp = await supabase
-                .from('procedimentos')
-                .select('codigo, nome, categoria_id, plano_base_id')
-                .in('plano_base_id', planosBaseElegiveis)
+            const procedimentosResp = await buscarTodosPaginado(() =>
+                supabase
+                    .from('procedimentos')
+                    .select('codigo, nome, categoria_id, plano_base_id')
+                    .in('plano_base_id', planosBaseElegiveis)
+            )
 
             const [planosCidadeResp, repassesPorCidadeResp] = await Promise.all([
-                supabase
-                    .from('planos_cidade')
-                    .select('id, procedimento_cod, diferenca')
-                    .eq('cidade_id', cidadeId)
-                    .eq('plano_id', planoId),
-                supabase
-                    .from('repasses')
-                    .select('id, procedimento_id, porte_id, valor')
-                    .eq('cidade_id', cidadeId),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('planos_cidade')
+                        .select('id, procedimento_cod, diferenca')
+                        .eq('cidade_id', cidadeId)
+                        .eq('plano_id', planoId)
+                ),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('repasses')
+                        .select('id, procedimento_id, porte_id, valor')
+                        .eq('cidade_id', cidadeId)
+                ),
             ])
 
             let planosCidade = planosCidadeResp.data
@@ -231,11 +238,13 @@ const Supertabelamain = () => {
 
             if (errPlanosCidade && regiaoSelecionadaId) {
                 // Compatibilidade com bases antigas onde planos_cidade ainda usa regiao_id.
-                const fallbackPlanos = await supabase
-                    .from('planos_cidade')
-                    .select('id, procedimento_cod, diferenca')
-                    .eq('regiao_id', regiaoSelecionadaId)
-                    .eq('plano_id', planoId)
+                const fallbackPlanos = await buscarTodosPaginado(() =>
+                    supabase
+                        .from('planos_cidade')
+                        .select('id, procedimento_cod, diferenca')
+                        .eq('regiao_id', regiaoSelecionadaId)
+                        .eq('plano_id', planoId)
+                )
 
                 planosCidade = fallbackPlanos.data
                 errPlanosCidade = fallbackPlanos.error
@@ -243,10 +252,12 @@ const Supertabelamain = () => {
 
             if (errRepasses && regiaoSelecionadaId) {
                 // Compatibilidade com bases antigas onde repasses ainda usam regiao_id.
-                const fallbackRepasses = await supabase
-                    .from('repasses')
-                    .select('id, procedimento_id, porte_id, valor')
-                    .eq('regiao_id', regiaoSelecionadaId)
+                const fallbackRepasses = await buscarTodosPaginado(() =>
+                    supabase
+                        .from('repasses')
+                        .select('id, procedimento_id, porte_id, valor')
+                        .eq('regiao_id', regiaoSelecionadaId)
+                )
 
                 repasses = fallbackRepasses.data
                 errRepasses = fallbackRepasses.error

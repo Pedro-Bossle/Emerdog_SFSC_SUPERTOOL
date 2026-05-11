@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
+import { PERMISSION_KEYS, hasStoredPermission } from '../../../lib/accessControl'
+import { buscarTodosPaginado, getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelaplanos.css'
 
@@ -13,6 +14,7 @@ const COLUNAS_PLANO = [
 
 const CAMPOS_DIF_COLAGEM = ['basico', 'classico', 'avancado', 'ultra']
 const CAMPOS_LIM_COLAGEM = ['limite', 'carencia']
+const ORDEM_PLANOS = COLUNAS_PLANO.map((plano) => plano.chave)
 
 const normalizarNome = (texto) =>
     String(texto || '')
@@ -45,8 +47,25 @@ const mapearPlanosPorChave = (planos) => {
     return resultado
 }
 
+const obterChavePlanoPorId = (planoId, mapaPlanos) => {
+    const idNumerico = Number(planoId)
+    if (!idNumerico) return null
+    return ORDEM_PLANOS.find((chave) => Number(mapaPlanos[chave]?.id) === idNumerico) || null
+}
+
+const obterPlanoIdsPermitidos = (planoBaseId, mapaPlanos) => {
+    const chaveBase = obterChavePlanoPorId(planoBaseId, mapaPlanos) || 'basico'
+    const indiceBase = ORDEM_PLANOS.indexOf(chaveBase)
+    return ORDEM_PLANOS
+        .slice(indiceBase < 0 ? 0 : indiceBase)
+        .map((chave) => mapaPlanos[chave]?.id)
+        .filter(Boolean)
+        .map((id) => Number(id))
+}
+
 const Supertabelaplanos = () => {
-    const [somenteLeitura] = useState(() => getReadOnlyFlag())
+    const [somenteLeitura] = useState(() => getReadOnlyFlag() || !hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_EDIT))
+    const [podeExclusaoPorLista] = useState(() => hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_DELETE_BY_LIST))
     const [cidades, setCidades] = useState([])
     const [regioes, setRegioes] = useState([])
     const [planos, setPlanos] = useState([])
@@ -71,6 +90,10 @@ const Supertabelaplanos = () => {
 
     const [codigosInicializacaoPlanos, setCodigosInicializacaoPlanos] = useState('')
     const [adicaoMassaAtiva, setAdicaoMassaAtiva] = useState(false)
+    const [progressoMassa, setProgressoMassa] = useState({ ativo: false, atual: 0, total: 0, label: '' })
+
+    const [mostrarExclusaoListaModal, setMostrarExclusaoListaModal] = useState(false)
+    const [codigosManterLista, setCodigosManterLista] = useState('')
     const [categoriaEmInclusao, setCategoriaEmInclusao] = useState(null)
     const [textoNovoProcedimento, setTextoNovoProcedimento] = useState('')
     const [novoProcedimentoSelecionadoCodigo, setNovoProcedimentoSelecionadoCodigo] = useState('')
@@ -98,6 +121,29 @@ const Supertabelaplanos = () => {
         const p = planos.find((item) => String(item.id) === String(planoDetalheId))
         return p?.nome || 'Plano'
     }, [planos, planoDetalheId])
+
+    const percentualProgressoMassa = useMemo(() => {
+        if (!progressoMassa.total) return 0
+        return Math.min(100, Math.round((Number(progressoMassa.atual || 0) / Number(progressoMassa.total)) * 100))
+    }, [progressoMassa.atual, progressoMassa.total])
+
+    const previewExclusaoLista = useMemo(() => {
+        const codigosColados = extrairCodigosProcedimentoEmMassa(codigosManterLista || '')
+        const setManter = new Set(codigosColados.map((cod) => String(cod).toUpperCase()))
+        const codigosAtuais = [...new Set(linhasDiferencas.map((linha) => String(linha.codigo).toUpperCase()))]
+
+        const aExcluir = codigosAtuais.filter((cod) => !setManter.has(cod))
+        const aManter = codigosAtuais.filter((cod) => setManter.has(cod))
+        const naoEncontradosNaTabela = [...setManter].filter((cod) => !codigosAtuais.includes(cod))
+
+        return {
+            totalAtuais: codigosAtuais.length,
+            totalColados: setManter.size,
+            aExcluir,
+            aManter,
+            naoEncontradosNaTabela,
+        }
+    }, [codigosManterLista, linhasDiferencas])
 
     const formatarMoeda = (valor) =>
         new Intl.NumberFormat('pt-BR', {
@@ -147,7 +193,12 @@ const Supertabelaplanos = () => {
                 supabase.from('regioes').select('id, nome').order('nome', { ascending: true }),
                 supabase.from('planos').select('id, nome').order('id', { ascending: true }),
                 supabase.from('categorias').select('id, nome').gte('id', 3).lte('id', 25).order('id', { ascending: true }),
-                supabase.from('procedimentos').select('codigo, nome, categoria_id').order('codigo', { ascending: true }),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('procedimentos')
+                        .select('codigo, nome, categoria_id, plano_base_id')
+                        .order('codigo', { ascending: true })
+                ),
             ])
 
             if (errCidades || errRegioes || errPlanos || errCategorias || errProcedimentos) {
@@ -185,24 +236,16 @@ const Supertabelaplanos = () => {
         }
     }, [])
 
-    const buscarPlanosCidadePorCidade = async () => {
-        if (!cidadeId) return { data: [], error: null, usouRegiao: false }
+    const buscarPlanosCidadePorCidade = useCallback(async () => {
+        if (!cidadeId || !regiaoSelecionadaId) return { data: [], error: null }
 
-        let resp = await supabase
-            .from('planos_cidade')
-            .select('id, plano_id, procedimento_cod, diferenca')
-            .eq('cidade_id', cidadeId)
-
-        if (resp.error && regiaoSelecionadaId) {
-            const fallback = await supabase
+        return buscarTodosPaginado(() =>
+            supabase
                 .from('planos_cidade')
                 .select('id, plano_id, procedimento_cod, diferenca')
                 .eq('regiao_id', regiaoSelecionadaId)
-            return { data: fallback.data || [], error: fallback.error, usouRegiao: true }
-        }
-
-        return { data: resp.data || [], error: resp.error, usouRegiao: false }
-    }
+        )
+    }, [cidadeId, regiaoSelecionadaId])
 
     const buscarLinhasDiferencas = useCallback(async () => {
         if (!cidadeId || planos.length === 0) {
@@ -216,7 +259,7 @@ const Supertabelaplanos = () => {
 
             const { data: planosCidade, error: errPc } = await buscarPlanosCidadePorCidade()
             if (errPc) {
-                setErroDetalhe(`Erro ao buscar planos por cidade: ${errPc.message}`)
+                setErroDetalhe(`Erro ao buscar planos da região: ${errPc.message}`)
                 setLinhasDiferencas([])
                 return
             }
@@ -229,7 +272,7 @@ const Supertabelaplanos = () => {
 
             const { data: procedimentosData, error: errProc } = await supabase
                 .from('procedimentos')
-                .select('codigo, nome, categoria_id')
+                .select('codigo, nome, categoria_id, plano_base_id')
                 .in('codigo', codigos)
 
             if (errProc) {
@@ -238,17 +281,50 @@ const Supertabelaplanos = () => {
                 return
             }
 
+            const mapaPlanos = mapearPlanosPorChave(planos)
             const mapaProc = new Map(
                 (procedimentosData || []).map((item) => [
                     String(item.codigo),
-                    { nome: String(item.nome), categoriaId: item.categoria_id },
+                    { nome: String(item.nome), categoriaId: item.categoria_id, planoBaseId: item.plano_base_id },
                 ])
             )
+            let planosCidadeCompletos = planosCidade || []
+            const planosPorCodigo = new Map()
+            planosCidadeCompletos.forEach((item) => {
+                const cod = String(item.procedimento_cod)
+                if (!planosPorCodigo.has(cod)) planosPorCodigo.set(cod, new Set())
+                planosPorCodigo.get(cod).add(Number(item.plano_id))
+            })
 
-            const mapaPlanos = mapearPlanosPorChave(planos)
+            const payloadComplemento = []
+            mapaProc.forEach((meta, cod) => {
+                const planosExistentes = planosPorCodigo.get(cod) || new Set()
+                obterPlanoIdsPermitidos(meta.planoBaseId, mapaPlanos).forEach((planoId) => {
+                    if (planosExistentes.has(Number(planoId))) return
+                    payloadComplemento.push({
+                        regiao_id: Number(regiaoSelecionadaId),
+                        plano_id: Number(planoId),
+                        procedimento_cod: cod,
+                        diferenca: 0,
+                    })
+                })
+            })
+
+            if (!somenteLeitura && payloadComplemento.length > 0) {
+                const { data: inseridos, error: errComplemento } = await supabase
+                    .from('planos_cidade')
+                    .insert(payloadComplemento)
+                    .select('id, plano_id, procedimento_cod, diferenca')
+                if (errComplemento) {
+                    setErroDetalhe(`Erro ao completar planos do procedimento: ${errComplemento.message}`)
+                    setLinhasDiferencas([])
+                    return
+                }
+                planosCidadeCompletos = [...planosCidadeCompletos, ...(inseridos || [])]
+            }
             const mapaLinhas = new Map()
 
-            for (const item of planosCidade || []) {
+            for (const item of planosCidadeCompletos) {
                 const cod = String(item.procedimento_cod)
                 if (!mapaLinhas.has(cod)) {
                     const meta = mapaProc.get(cod) || { nome: cod, categoriaId: null }
@@ -283,7 +359,7 @@ const Supertabelaplanos = () => {
         } finally {
             setLoading(false)
         }
-    }, [cidadeId, planos, regiaoSelecionadaId])
+    }, [buscarPlanosCidadePorCidade, cidadeId, planos, regiaoSelecionadaId, somenteLeitura])
 
     const buscarLinhasLimitacoes = useCallback(async () => {
         if (!planoDetalheId || planos.length === 0) {
@@ -295,10 +371,12 @@ const Supertabelaplanos = () => {
             setLoading(true)
             setErroDetalhe('')
 
-            const { data: configs, error: errCfg } = await supabase
-                .from('planos_config')
-                .select('id, procedimento, limite, carencia')
-                .eq('plano_id', planoDetalheId)
+            const { data: configs, error: errCfg } = await buscarTodosPaginado(() =>
+                supabase
+                    .from('planos_config')
+                    .select('id, procedimento, limite, carencia')
+                    .eq('plano_id', planoDetalheId)
+            )
 
             if (errCfg) {
                 setErroDetalhe(`Erro ao buscar limitações: ${errCfg.message}`)
@@ -362,18 +440,25 @@ const Supertabelaplanos = () => {
     }, [planoDetalheId, planos])
 
     const inserirPlanosCidadeParaCodigo = async (codigoNormalizado, opcoes = {}) => {
-        if (!cidadeId) {
-            mostrarErroToast('Selecione uma cidade.')
-            return false
+        const reportarErro = (mensagem) => {
+            if (!opcoes.silencioso) mostrarErroToast(mensagem)
+        }
+
+        if (!cidadeId || !regiaoSelecionadaId) {
+            reportarErro('Selecione uma cidade.')
+            return { status: 'erro', mensagem: 'Cidade/região não selecionada.' }
         }
 
         const mapaPlanosCol = mapearPlanosPorChave(planos)
+        const procedimentoMeta = procedimentos.find((item) => String(item.codigo).toUpperCase() === String(codigoNormalizado).toUpperCase())
+        const planosPermitidos = new Set(obterPlanoIdsPermitidos(procedimentoMeta?.plano_base_id, mapaPlanosCol))
         const candidatos = []
         COLUNAS_PLANO.forEach(({ chave }) => {
             const meta = mapaPlanosCol[chave]
             if (!meta?.id) return
+            if (!planosPermitidos.has(Number(meta.id))) return
             candidatos.push({
-                cidade_id: Number(cidadeId),
+                regiao_id: Number(regiaoSelecionadaId),
                 plano_id: Number(meta.id),
                 procedimento_cod: codigoNormalizado,
                 diferenca: 0,
@@ -381,55 +466,54 @@ const Supertabelaplanos = () => {
         })
 
         if (candidatos.length === 0) {
-            mostrarErroToast('Nenhum plano mapeado (Básico, Clássico, Avançado, Ultra).')
-            return false
+            reportarErro('Nenhum plano mapeado (Básico, Clássico, Avançado, Ultra).')
+            return { status: 'erro', mensagem: 'Sem planos mapeados.' }
         }
 
-        const { data: existentes, error: errEx } = await supabase
+        const consultaExistentes = await supabase
             .from('planos_cidade')
             .select('plano_id')
-            .eq('cidade_id', cidadeId)
+            .eq('regiao_id', regiaoSelecionadaId)
             .eq('procedimento_cod', codigoNormalizado)
 
-        if (errEx) {
-            mostrarErroToast(`Erro ao verificar registros: ${errEx.message}`)
-            return false
+        if (consultaExistentes.error) {
+            reportarErro(`Erro ao verificar registros: ${consultaExistentes.error.message}`)
+            return { status: 'erro', mensagem: consultaExistentes.error.message }
         }
 
-        const idsEx = new Set((existentes || []).map((e) => Number(e.plano_id)))
+        const idsEx = new Set((consultaExistentes.data || []).map((e) => Number(e.plano_id)))
         const novos = candidatos.filter((c) => !idsEx.has(Number(c.plano_id)))
         if (novos.length === 0) {
-            mostrarErroToast('O procedimento já está vinculado a todos os planos desta cidade.')
-            return false
+            reportarErro('O procedimento já está vinculado a todos os planos esperados para esta cidade.')
+            return { status: 'ja_existia' }
         }
 
-        let { error } = await supabase.from('planos_cidade').insert(novos)
-        if (error && regiaoSelecionadaId) {
-            const novosR = novos.map(({ plano_id, procedimento_cod, diferenca }) => ({
-                regiao_id: Number(regiaoSelecionadaId),
-                plano_id,
-                procedimento_cod,
-                diferenca,
-            }))
-            const r2 = await supabase.from('planos_cidade').insert(novosR)
-            error = r2.error
-        }
+        const { error } = await supabase.from('planos_cidade').insert(novos)
 
         if (error) {
-            mostrarErroToast(`Erro ao inserir na tabela planos por cidade: ${error.message}`)
-            return false
+            const msg = String(error.message || '')
+            if (msg.toLowerCase().includes('duplicate') || msg.includes('23505')) {
+                reportarErro('O procedimento já está vinculado a todos os planos esperados para esta cidade.')
+                return { status: 'ja_existia' }
+            }
+            reportarErro(`Erro ao inserir na tabela planos por cidade: ${error.message}`)
+            return { status: 'erro', mensagem: error.message }
         }
 
         if (!opcoes.semRecarregar) {
             await buscarLinhasDiferencas()
         }
-        return true
+        return { status: 'ok' }
     }
 
     const inserirPlanoConfigParaCodigo = async (codigoNormalizado, opcoes = {}) => {
+        const reportarErro = (mensagem) => {
+            if (!opcoes.silencioso) mostrarErroToast(mensagem)
+        }
+
         if (!planoDetalheId) {
-            mostrarErroToast('Selecione um plano.')
-            return false
+            reportarErro('Selecione um plano.')
+            return { status: 'erro', mensagem: 'Plano não selecionado.' }
         }
 
         const { error } = await supabase.from('planos_config').insert({
@@ -442,17 +526,17 @@ const Supertabelaplanos = () => {
         if (error) {
             const msg = String(error.message || '')
             if (msg.toLowerCase().includes('duplicate') || msg.includes('23505')) {
-                mostrarErroToast('Este procedimento já possui registro para o plano selecionado.')
-            } else {
-                mostrarErroToast(`Erro ao inserir: ${error.message}`)
+                reportarErro('Este procedimento já possui registro para o plano selecionado.')
+                return { status: 'ja_existia' }
             }
-            return false
+            reportarErro(`Erro ao inserir: ${error.message}`)
+            return { status: 'erro', mensagem: error.message }
         }
 
         if (!opcoes.semRecarregar) {
             await buscarLinhasLimitacoes()
         }
-        return true
+        return { status: 'ok' }
     }
 
     useEffect(() => {
@@ -615,13 +699,10 @@ const Supertabelaplanos = () => {
 
         const codigoNormalizado = String(encontrado.codigo).toUpperCase()
 
-        if (modoLimitacoes) {
-            const ok = await inserirPlanoConfigParaCodigo(codigoNormalizado)
-            if (!ok) return
-        } else {
-            const ok = await inserirPlanosCidadeParaCodigo(codigoNormalizado)
-            if (!ok) return
-        }
+        const resultado = modoLimitacoes
+            ? await inserirPlanoConfigParaCodigo(codigoNormalizado)
+            : await inserirPlanosCidadeParaCodigo(codigoNormalizado)
+        if (resultado.status !== 'ok') return
 
         setCategoriaEmInclusao(null)
         setTextoNovoProcedimento('')
@@ -647,6 +728,7 @@ const Supertabelaplanos = () => {
         }
 
         setLoading(true)
+        setProgressoMassa({ ativo: true, atual: 0, total: codigos.length, label: 'Validando códigos...' })
         try {
             const { data: procedimentosValidos, error: errProcedimentos } = await supabase
                 .from('procedimentos')
@@ -664,17 +746,41 @@ const Supertabelaplanos = () => {
                 return
             }
 
+            const codigosNaoEncontrados = codigos.filter(
+                (cod) => !codigosValidos.includes(String(cod).toUpperCase())
+            )
+            setProgressoMassa({
+                ativo: true,
+                atual: codigosNaoEncontrados.length,
+                total: codigos.length,
+                label: 'Inserindo procedimentos...',
+            })
+            let totalInseridos = 0
+            let totalIgnorados = 0
+            const errosDetalhados = []
+
             for (let i = 0; i < codigosValidos.length; i += 1) {
                 const cod = codigosValidos[i]
-                if (modoLimitacoes) {
-                    const ok = await inserirPlanoConfigParaCodigo(cod, { semRecarregar: true })
-                    if (!ok) return
-                } else {
-                    const ok = await inserirPlanosCidadeParaCodigo(cod, { semRecarregar: true })
-                    if (!ok) return
-                }
+                const resultado = modoLimitacoes
+                    ? await inserirPlanoConfigParaCodigo(cod, { semRecarregar: true, silencioso: true })
+                    : await inserirPlanosCidadeParaCodigo(cod, { semRecarregar: true, silencioso: true })
+                if (resultado.status === 'ok') totalInseridos += 1
+                else if (resultado.status === 'ja_existia') totalIgnorados += 1
+                else errosDetalhados.push(`${cod}: ${resultado.mensagem || 'erro desconhecido'}`)
+                setProgressoMassa({
+                    ativo: true,
+                    atual: codigosNaoEncontrados.length + i + 1,
+                    total: codigos.length,
+                    label: `Processando ${i + 1} de ${codigosValidos.length} código(s) válido(s)...`,
+                })
             }
 
+            setProgressoMassa({
+                ativo: true,
+                atual: codigos.length,
+                total: codigos.length,
+                label: 'Atualizando tabela...',
+            })
             if (modoLimitacoes) {
                 await buscarLinhasLimitacoes()
             } else {
@@ -682,10 +788,111 @@ const Supertabelaplanos = () => {
             }
 
             setCodigosInicializacaoPlanos('')
+
+            const partes = []
+            if (totalInseridos > 0) partes.push(`${totalInseridos} adicionado(s)`)
+            if (totalIgnorados > 0) partes.push(`${totalIgnorados} já existente(s) ignorado(s)`)
+            if (codigosNaoEncontrados.length > 0) partes.push(`${codigosNaoEncontrados.length} código(s) não encontrado(s): ${codigosNaoEncontrados.join(', ')}`)
+            if (errosDetalhados.length > 0) partes.push(`${errosDetalhados.length} falhou(aram): ${errosDetalhados.join(' | ')}`)
+            if (partes.length > 0) mostrarErroToast(`Adição em massa concluída — ${partes.join(' · ')}.`)
         } catch (error) {
             mostrarErroToast(`Falha ao inserir procedimentos em massa: ${error.message}`)
         } finally {
             setLoading(false)
+            setProgressoMassa({ ativo: false, atual: 0, total: 0, label: '' })
+        }
+    }
+
+    const abrirExclusaoListaModal = () => {
+        if (modoLimitacoes) {
+            mostrarErroToast('A exclusão por lista está disponível apenas no modo "Ver diferenças".')
+            return
+        }
+        if (!podeExclusaoPorLista) {
+            mostrarErroToast('Seu usuário não possui permissão para usar a Exclusão por lista.')
+            return
+        }
+        if (!cidadeId || !regiaoSelecionadaId) {
+            mostrarErroToast('Selecione uma cidade com região vinculada.')
+            return
+        }
+        setCodigosManterLista('')
+        setMostrarExclusaoListaModal(true)
+    }
+
+    const fecharExclusaoListaModal = () => {
+        setMostrarExclusaoListaModal(false)
+        setCodigosManterLista('')
+    }
+
+    const executarExclusaoMassaPorLista = async () => {
+        if (somenteLeitura) {
+            mostrarErroToast('Perfil somente leitura: exclusão bloqueada.')
+            return
+        }
+        if (!podeExclusaoPorLista) {
+            mostrarErroToast('Seu usuário não possui permissão para usar a Exclusão por lista.')
+            return
+        }
+        if (!regiaoSelecionadaId) {
+            mostrarErroToast('A cidade selecionada não possui região vinculada.')
+            return
+        }
+
+        const codigosParaExcluir = previewExclusaoLista.aExcluir
+        if (codigosParaExcluir.length === 0) {
+            mostrarErroToast('Nada a excluir: todos os procedimentos atuais já estão na lista informada.')
+            return
+        }
+
+        setLoading(true)
+        setProgressoMassa({
+            ativo: true,
+            atual: 0,
+            total: codigosParaExcluir.length,
+            label: 'Excluindo procedimentos fora da lista...',
+        })
+
+        try {
+            const TAMANHO_LOTE = 200
+            let totalExcluidos = 0
+
+            for (let inicio = 0; inicio < codigosParaExcluir.length; inicio += TAMANHO_LOTE) {
+                const lote = codigosParaExcluir.slice(inicio, inicio + TAMANHO_LOTE)
+                const { error } = await supabase
+                    .from('planos_cidade')
+                    .delete()
+                    .eq('regiao_id', regiaoSelecionadaId)
+                    .in('procedimento_cod', lote)
+
+                if (error) {
+                    mostrarErroToast(`Erro ao excluir procedimentos em massa: ${error.message}`)
+                    return
+                }
+
+                totalExcluidos += lote.length
+                setProgressoMassa({
+                    ativo: true,
+                    atual: Math.min(totalExcluidos, codigosParaExcluir.length),
+                    total: codigosParaExcluir.length,
+                    label: `Excluindo lote ${Math.ceil((inicio + TAMANHO_LOTE) / TAMANHO_LOTE)} de ${Math.ceil(codigosParaExcluir.length / TAMANHO_LOTE)}...`,
+                })
+            }
+
+            fecharExclusaoListaModal()
+            setProgressoMassa({
+                ativo: true,
+                atual: codigosParaExcluir.length,
+                total: codigosParaExcluir.length,
+                label: 'Atualizando tabela...',
+            })
+            await buscarLinhasDiferencas()
+            mostrarErroToast(`Exclusão concluída — ${totalExcluidos} procedimento(s) removido(s) da região.`)
+        } catch (error) {
+            mostrarErroToast(`Falha ao excluir em massa: ${error.message}`)
+        } finally {
+            setLoading(false)
+            setProgressoMassa({ ativo: false, atual: 0, total: 0, label: '' })
         }
     }
 
@@ -1006,20 +1213,15 @@ const Supertabelaplanos = () => {
 
     const excluirProcedimentoCidadePlanos = async (linha, opcoes = {}) => {
         const executarExclusao = async () => {
-            let { error } = await supabase
+            if (!regiaoSelecionadaId) {
+                mostrarErroToast('A cidade selecionada não possui região vinculada.')
+                return
+            }
+            const { error } = await supabase
                 .from('planos_cidade')
                 .delete()
-                .eq('cidade_id', cidadeId)
+                .eq('regiao_id', regiaoSelecionadaId)
                 .eq('procedimento_cod', linha.codigo)
-
-            if (error && regiaoSelecionadaId) {
-                const r2 = await supabase
-                    .from('planos_cidade')
-                    .delete()
-                    .eq('regiao_id', regiaoSelecionadaId)
-                    .eq('procedimento_cod', linha.codigo)
-                error = r2.error
-            }
 
             if (error) {
                 mostrarErroToast(`Erro ao excluir registros de plano: ${error.message}`)
@@ -1034,7 +1236,7 @@ const Supertabelaplanos = () => {
             return
         }
 
-        abrirConfirmacaoExclusao(`Excluir o procedimento ${linha.codigo} de todos os planos desta cidade?`, executarExclusao)
+        abrirConfirmacaoExclusao(`Excluir o procedimento ${linha.codigo} de todos os planos desta região?`, executarExclusao)
     }
 
     const cidadesGerenciaveis = useMemo(() => {
@@ -1090,12 +1292,6 @@ const Supertabelaplanos = () => {
 
     const excluirCidadeNoGerenciador = async (cidade, opcoes = {}) => {
         const executarExclusao = async () => {
-            const { error: errPc } = await supabase.from('planos_cidade').delete().eq('cidade_id', cidade.id)
-            if (errPc) {
-                mostrarErroToast(`Erro ao excluir vínculos de planos: ${errPc.message}`)
-                return
-            }
-
             const { error: errRepasses } = await supabase.from('repasses').delete().eq('cidade_id', cidade.id)
             if (errRepasses) {
                 mostrarErroToast(`Erro ao excluir tabela da cidade: ${errRepasses.message}`)
@@ -1128,7 +1324,7 @@ const Supertabelaplanos = () => {
             return
         }
 
-        abrirConfirmacaoExclusao(`Excluir a cidade "${cidade.nome}" e toda a tabela vinculada?`, executarExclusao)
+        abrirConfirmacaoExclusao(`Excluir a cidade "${cidade.nome}" e os vínculos próprios dela? A tabela de planos da região será mantida.`, executarExclusao)
     }
 
     const iniciarDuplicacaoCidade = (cidade) => {
@@ -1279,25 +1475,6 @@ const Supertabelaplanos = () => {
                 }
             }
 
-            const { data: planosCidadeOrigem, error: errPcOrigem } = await supabase
-                .from('planos_cidade')
-                .select('plano_id, procedimento_cod, diferenca')
-                .eq('cidade_id', cidadeDuplicarOrigem.id)
-
-            if (!errPcOrigem && planosCidadeOrigem?.length > 0) {
-                const payloadPc = planosCidadeOrigem.map((item) => ({
-                    cidade_id: cidadeNova.id,
-                    plano_id: item.plano_id,
-                    procedimento_cod: item.procedimento_cod,
-                    diferenca: item.diferenca,
-                }))
-                const { error: errPcIns } = await supabase.from('planos_cidade').insert(payloadPc)
-                if (errPcIns) {
-                    mostrarErroToast(`Repasses copiados, mas houve erro ao copiar planos por cidade: ${errPcIns.message}`)
-                    return
-                }
-            }
-
             await carregarBase()
             setCidadeId(String(cidadeNova.id))
             setCidadeDuplicarOrigem(null)
@@ -1418,6 +1595,18 @@ const Supertabelaplanos = () => {
                         </label>
                     )}
 
+                    {!somenteLeitura && podeExclusaoPorLista && !modoLimitacoes && (
+                        <button
+                            type='button'
+                            className='supertabelaplanos_action_btn'
+                            onClick={abrirExclusaoListaModal}
+                            disabled={loading || !cidadeId}
+                            title='Excluir procedimentos que NÃO estão na lista informada'
+                        >
+                            <span className='supertabelaplanos_action_btn_ico'>🗑️</span> Exclusão por lista
+                        </button>
+                    )}
+
                     <div className='supertabelaplanos_filter_item supertabelaplanos_filter_mode'>
                         <p className='supertabelaplanos_filter_mode_label'>Visualização</p>
                         <div className='supertabelaplanos_mode_rail' role='group' aria-label='Tipo de visualização da tabela'>
@@ -1483,9 +1672,33 @@ const Supertabelaplanos = () => {
                                 placeholder={`Ex.: CONS-00N, EXAM-103
 ou um código por linha`}
                             />
-                            <button type='button' className='supertabelaplanos_cidade_vazia_btn' onClick={preencherProcedimentosMassaPlanos}>
+                            <button
+                                type='button'
+                                className='supertabelaplanos_cidade_vazia_btn'
+                                onClick={preencherProcedimentosMassaPlanos}
+                                disabled={loading}
+                            >
                                 Inserir procedimentos em massa
                             </button>
+                            {progressoMassa.ativo && (
+                                <div className='supertabelaplanos_progress_wrap' role='status' aria-live='polite'>
+                                    <div className='supertabelaplanos_progress_meta'>
+                                        <span>{progressoMassa.label || 'Processando...'}</span>
+                                        <strong>
+                                            {progressoMassa.atual}/{progressoMassa.total} ({percentualProgressoMassa}%)
+                                        </strong>
+                                    </div>
+                                    <div
+                                        className='supertabelaplanos_progress_bar'
+                                        role='progressbar'
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={percentualProgressoMassa}
+                                    >
+                                        <span style={{ width: `${percentualProgressoMassa}%` }} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1529,6 +1742,134 @@ ou um código por linha`}
                         <button type='button' className='supertabelaplanos_confirm_btn' onClick={() => setConfirmacaoExclusao(null)}>
                             Cancelar
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {mostrarExclusaoListaModal && (
+                <div className='manager_modal_overlay' onClick={fecharExclusaoListaModal}>
+                    <div
+                        className='manager_modal supertabelaplanos_exclusao_lista_modal'
+                        onClick={(event) => event.stopPropagation()}
+                    >
+                        <div className='manager_modal_header'>
+                            <h3>Exclusão em massa por lista</h3>
+                            <button
+                                type='button'
+                                className='manager_close_btn'
+                                onClick={fecharExclusaoListaModal}
+                                title='Fechar'
+                            >
+                                x
+                            </button>
+                        </div>
+
+                        <div className='supertabelaplanos_exclusao_lista_body'>
+                            <p className='supertabelaplanos_exclusao_lista_info'>
+                                Cole abaixo a lista de códigos que devem permanecer na cidade
+                                <strong> {cidadeSelecionada?.nome || ''}</strong>. Todos os procedimentos
+                                atualmente vinculados que <strong>NÃO estiverem</strong> na lista serão removidos
+                                de todos os planos desta região.
+                            </p>
+
+                            <label htmlFor='codigos-exclusao-lista'>
+                                Códigos a manter (um por linha ou separados por vírgula)
+                            </label>
+                            <textarea
+                                id='codigos-exclusao-lista'
+                                rows={6}
+                                value={codigosManterLista}
+                                onChange={(e) => setCodigosManterLista(e.target.value)}
+                                placeholder={`Ex.: CONS-001, EXAM-103
+ou um código por linha`}
+                            />
+
+                            <div className='supertabelaplanos_exclusao_lista_preview'>
+                                <div className='supertabelaplanos_exclusao_lista_preview_row'>
+                                    <span>Procedimentos atuais na cidade</span>
+                                    <strong>{previewExclusaoLista.totalAtuais}</strong>
+                                </div>
+                                <div className='supertabelaplanos_exclusao_lista_preview_row'>
+                                    <span>Códigos informados na lista</span>
+                                    <strong>{previewExclusaoLista.totalColados}</strong>
+                                </div>
+                                <div className='supertabelaplanos_exclusao_lista_preview_row is-positive'>
+                                    <span>Serão mantidos</span>
+                                    <strong>{previewExclusaoLista.aManter.length}</strong>
+                                </div>
+                                <div className='supertabelaplanos_exclusao_lista_preview_row is-danger'>
+                                    <span>Serão excluídos</span>
+                                    <strong>{previewExclusaoLista.aExcluir.length}</strong>
+                                </div>
+                                {previewExclusaoLista.naoEncontradosNaTabela.length > 0 && (
+                                    <div className='supertabelaplanos_exclusao_lista_preview_row is-warning'>
+                                        <span>
+                                            Códigos da lista que não estão na cidade (serão ignorados)
+                                        </span>
+                                        <strong>{previewExclusaoLista.naoEncontradosNaTabela.length}</strong>
+                                    </div>
+                                )}
+                            </div>
+
+                            {previewExclusaoLista.aExcluir.length > 0 && (
+                                <details className='supertabelaplanos_exclusao_lista_detalhes'>
+                                    <summary>
+                                        Ver {previewExclusaoLista.aExcluir.length} código(s) que serão excluídos
+                                    </summary>
+                                    <div className='supertabelaplanos_exclusao_lista_detalhes_body'>
+                                        {previewExclusaoLista.aExcluir.join(', ')}
+                                    </div>
+                                </details>
+                            )}
+
+                            {progressoMassa.ativo && (
+                                <div className='supertabelaplanos_progress_wrap' role='status' aria-live='polite'>
+                                    <div className='supertabelaplanos_progress_meta'>
+                                        <span>{progressoMassa.label || 'Processando...'}</span>
+                                        <strong>
+                                            {progressoMassa.atual}/{progressoMassa.total} ({percentualProgressoMassa}%)
+                                        </strong>
+                                    </div>
+                                    <div
+                                        className='supertabelaplanos_progress_bar'
+                                        role='progressbar'
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={percentualProgressoMassa}
+                                    >
+                                        <span style={{ width: `${percentualProgressoMassa}%` }} />
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className='supertabelaplanos_exclusao_lista_actions'>
+                                <button
+                                    type='button'
+                                    className='supertabelaplanos_confirm_btn'
+                                    onClick={fecharExclusaoListaModal}
+                                    disabled={loading}
+                                >
+                                    Cancelar
+                                </button>
+                                <button
+                                    type='button'
+                                    className='supertabelaplanos_confirm_btn danger'
+                                    disabled={
+                                        loading ||
+                                        previewExclusaoLista.totalColados === 0 ||
+                                        previewExclusaoLista.aExcluir.length === 0
+                                    }
+                                    onClick={() =>
+                                        abrirConfirmacaoExclusao(
+                                            `Excluir ${previewExclusaoLista.aExcluir.length} procedimento(s) da cidade ${cidadeSelecionada?.nome || ''}? Esta ação não pode ser desfeita.`,
+                                            executarExclusaoMassaPorLista
+                                        )
+                                    }
+                                >
+                                    Excluir {previewExclusaoLista.aExcluir.length} procedimento(s)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
@@ -1752,9 +2093,33 @@ ou um código por linha`}
                                 onChange={(e) => setCodigosInicializacaoPlanos(e.target.value)}
                                 placeholder='Ex.: CONS-00N, EXAM-103, LAB-9A'
                             />
-                            <button type='button' className='supertabelaplanos_cidade_vazia_btn' onClick={preencherProcedimentosMassaPlanos}>
+                            <button
+                                type='button'
+                                className='supertabelaplanos_cidade_vazia_btn'
+                                onClick={preencherProcedimentosMassaPlanos}
+                                disabled={loading}
+                            >
                                 {modoLimitacoes ? 'Inserir na lista do plano' : 'Inserir vínculos na cidade'}
                             </button>
+                            {progressoMassa.ativo && (
+                                <div className='supertabelaplanos_progress_wrap' role='status' aria-live='polite'>
+                                    <div className='supertabelaplanos_progress_meta'>
+                                        <span>{progressoMassa.label || 'Processando...'}</span>
+                                        <strong>
+                                            {progressoMassa.atual}/{progressoMassa.total} ({percentualProgressoMassa}%)
+                                        </strong>
+                                    </div>
+                                    <div
+                                        className='supertabelaplanos_progress_bar'
+                                        role='progressbar'
+                                        aria-valuemin={0}
+                                        aria-valuemax={100}
+                                        aria-valuenow={percentualProgressoMassa}
+                                    >
+                                        <span style={{ width: `${percentualProgressoMassa}%` }} />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (

@@ -12,6 +12,7 @@ import Supertabelaprocedimentos from './pages/Supertabela/Supertabela_procedimen
 import Supertabelanegociacoes from './pages/Supertabela/Supertabela_negociacoes/Supertabelanegociacoes';
 import Credenciamento_doc from './pages/Credenciamento/Credenciamento_doc/Credenciamento_doc';
 import Credenciamento_main from './pages/Credenciamento/Credenciamento_main/Credenciamento_main';
+import GerenciamentoAcessos from './pages/Administrativo/GerenciamentoAcessos/GerenciamentoAcessos';
 import NotFound from './pages/NotFound/NotFound';
 function App() {
   return (
@@ -34,7 +35,7 @@ function App() {
           <Route
             path="/supertabeladoc"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabeladoc />
               </PrivateRoute>
             }
@@ -44,7 +45,7 @@ function App() {
           <Route
             path="/supertabelamain"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabelamain />
               </PrivateRoute>
             }
@@ -54,7 +55,7 @@ function App() {
           <Route
             path="/supertabela/cidades"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabelacidades />
               </PrivateRoute>
             }
@@ -64,7 +65,7 @@ function App() {
           <Route
             path="/supertabela/planos"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabelaplanos />
               </PrivateRoute>
             }
@@ -74,7 +75,7 @@ function App() {
           <Route
             path="/supertabela/procedimentos"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabelaprocedimentos />
               </PrivateRoute>
             }
@@ -84,7 +85,7 @@ function App() {
           <Route
             path="/supertabela/negociacoes"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="supertabela.view">
                 <Supertabelanegociacoes />
               </PrivateRoute>
             }
@@ -94,8 +95,18 @@ function App() {
           <Route
             path="/credenciamento/principal"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="credenciamento.view">
                 <Credenciamento_main />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/administrativo/acessos"
+            element={
+              <PrivateRoute permission="access.manage">
+                <GerenciamentoAcessos />
               </PrivateRoute>
             }
           />
@@ -104,7 +115,7 @@ function App() {
           <Route
             path="/credenciamentodoc"
             element={
-              <PrivateRoute>
+              <PrivateRoute permission="credenciamento.view">
                 <Credenciamento_doc />
               </PrivateRoute>
             }

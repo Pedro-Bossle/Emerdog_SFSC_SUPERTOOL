@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { PERMISSION_KEYS, getStoredAccessProfile, hasPermission, normalizarProfileAcesso, setStoredAccessProfile } from '../../../lib/accessControl'
 import { supabase } from '../../../lib/supabase'
 import './Credenciamento_main.css'
 
@@ -60,7 +61,10 @@ const textoCredenciado = (descricao) => normalizarTexto(descricao).includes('CRE
 const Credenciamento_main = () => {
     const [loading, setLoading] = useState(false)
     const [erro, setErro] = useState('')
-    const [somenteLeitura, setSomenteLeitura] = useState(false)
+    const [somenteLeitura, setSomenteLeitura] = useState(() => {
+        const profile = getStoredAccessProfile()
+        return profile ? !hasPermission(profile, PERMISSION_KEYS.CREDENCIAMENTO_EDIT) : false
+    })
     const [headerCompacto, setHeaderCompacto] = useState(false)
     const [expandedRowId, setExpandedRowId] = useState(null)
 
@@ -201,12 +205,25 @@ const Credenciamento_main = () => {
             const { data: authData } = await supabase.auth.getUser()
             const userId = authData?.user?.id
             if (!userId) return
-            const { data, error } = await supabase
+            let { data, error } = await supabase
                 .from('profiles')
-                .select('credenciamento_read_only')
+                .select('id, name, email, credenciamento_read_only, permissions')
                 .eq('id', userId)
                 .single()
-            if (!error) setSomenteLeitura(!!data?.credenciamento_read_only)
+            if (error && String(error.message || '').includes('email')) {
+                const fallback = await supabase
+                    .from('profiles')
+                    .select('id, name, credenciamento_read_only, permissions')
+                    .eq('id', userId)
+                    .single()
+                data = fallback.data
+                error = fallback.error
+            }
+            if (!error) {
+                const profile = normalizarProfileAcesso(data)
+                setStoredAccessProfile(profile)
+                setSomenteLeitura(!hasPermission(profile, PERMISSION_KEYS.CREDENCIAMENTO_EDIT))
+            }
         }
         carregarPermissoes()
     }, [])

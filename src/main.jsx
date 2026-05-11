@@ -7,6 +7,7 @@ import './pages/Supertabela/Supertabela_procedimentos/Supertabelaprocedimentos.c
 import './pages/Supertabela/Supertabela_negociacoes/Supertabelanegociacoes.css'
 import './pages/Credenciamento/Credenciamento_main/Credenciamento_main.css'
 import './pages/Credenciamento/Credenciamento_doc/Credenciamento_doc.css'
+import './pages/Administrativo/GerenciamentoAcessos/GerenciamentoAcessos.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(

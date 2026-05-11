@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { getReadOnlyFlag, supabase } from '../../../lib/supabase'
+import { PERMISSION_KEYS, hasStoredPermission } from '../../../lib/accessControl'
+import { buscarTodosPaginado, getReadOnlyFlag, supabase } from '../../../lib/supabase'
 import { extrairCodigosProcedimentoEmMassa } from '../../../lib/parseCodigosEmMassa'
 import './Supertabelanegociacoes.css'
 
@@ -91,7 +92,7 @@ const normalizarNumeroEntrada = (valorTexto) => {
 }
 
 const Supertabelanegociacoes = () => {
-    const [somenteLeitura] = useState(() => getReadOnlyFlag())
+    const [somenteLeitura] = useState(() => getReadOnlyFlag() || !hasStoredPermission(PERMISSION_KEYS.SUPERTABELA_EDIT))
     const [cidades, setCidades] = useState([])
     const [planos, setPlanos] = useState([])
     const [portes, setPortes] = useState([])
@@ -210,11 +211,15 @@ const Supertabelanegociacoes = () => {
                 supabase.from('planos').select('id, nome').order('id', { ascending: true }),
                 supabase.from('portes').select('id, nome').order('id', { ascending: true }),
                 supabase.from('categorias').select('id, nome').gte('id', 3).lte('id', 25).order('id', { ascending: true }),
-                supabase
-                    .from('procedimentos')
-                    .select('id, codigo, nome, categoria_id, plano_base_id')
-                    .order('codigo', { ascending: true }),
-                supabase.from('negociacoes_vet').select('veterinario_id, procedimento_id'),
+                buscarTodosPaginado(() =>
+                    supabase
+                        .from('procedimentos')
+                        .select('id, codigo, nome, categoria_id, plano_base_id')
+                        .order('codigo', { ascending: true })
+                ),
+                buscarTodosPaginado(() =>
+                    supabase.from('negociacoes_vet').select('veterinario_id, procedimento_id')
+                ),
             ])
 
             if (errCidades || errPlanos || errPortes || errCategorias || errProcedimentos || errNegociacoesVet) {
@@ -953,12 +958,16 @@ const Supertabelanegociacoes = () => {
         )
     }
 
-    const inserirProcedimentoNaNegociacao = async (procedimentoItem) => {
-        if (!negociacaoSelecionada) return false
+    const inserirProcedimentoNaNegociacao = async (procedimentoItem, opcoes = {}) => {
+        const reportarErro = (mensagem) => {
+            if (!opcoes.silencioso) mostrarErroToast(mensagem)
+        }
+
+        if (!negociacaoSelecionada) return { status: 'erro', mensagem: 'Negociação não selecionada.' }
         const porteIds = [obterPorteIdPorLetra('P'), obterPorteIdPorLetra('M'), obterPorteIdPorLetra('G')].filter(Boolean)
         if (porteIds.length === 0) {
-            mostrarErroToast('Portes P/M/G não encontrados para inclusão.')
-            return false
+            reportarErro('Portes P/M/G não encontrados para inclusão.')
+            return { status: 'erro', mensagem: 'Portes P/M/G não encontrados.' }
         }
 
         const payload = porteIds.map((porteId) => ({
@@ -971,11 +980,17 @@ const Supertabelanegociacoes = () => {
 
         const { error } = await supabase.from('negociacoes_vet').insert(payload)
         if (error) {
-            mostrarErroToast(`Erro ao incluir procedimento: ${error.message}`)
-            return false
+            const msg = String(error.message || '')
+            if (msg.toLowerCase().includes('duplicate') || msg.includes('23505')) {
+                return { status: 'ja_existia' }
+            }
+            reportarErro(`Erro ao incluir procedimento: ${error.message}`)
+            return { status: 'erro', mensagem: error.message }
         }
 
-        await carregarDetalheNegociacao(negociacaoSelecionada)
+        if (!opcoes.semRecarregar) {
+            await carregarDetalheNegociacao(negociacaoSelecionada)
+        }
         setNegociacoes((anteriores) =>
             anteriores.map((item) =>
                 Number(item.id) === Number(negociacaoSelecionada.id)
@@ -983,7 +998,7 @@ const Supertabelanegociacoes = () => {
                     : item
             )
         )
-        return true
+        return { status: 'ok' }
     }
 
     const confirmarNovoProcedimentoCategoria = async (categoriaId) => {
@@ -1014,8 +1029,8 @@ const Supertabelanegociacoes = () => {
             return
         }
 
-        const ok = await inserirProcedimentoNaNegociacao(encontrado)
-        if (!ok) return
+        const resultado = await inserirProcedimentoNaNegociacao(encontrado)
+        if (resultado.status !== 'ok') return
 
         setCategoriaEmInclusao(null)
         setTextoNovoProcedimento('')
@@ -1040,18 +1055,42 @@ const Supertabelanegociacoes = () => {
                 return
             }
 
+            const codigosEncontrados = new Set((data || []).map((item) => normalizarTexto(item.codigo)))
+            const codigosNaoEncontrados = codigos.filter((cod) => !codigosEncontrados.has(normalizarTexto(cod)))
             const existentes = new Set(detalheBase.map((item) => normalizarTexto(item.codigo)))
-            const candidatos = (data || []).filter((item) => !existentes.has(normalizarTexto(item.codigo)))
-            if (candidatos.length === 0) {
-                mostrarErroToast('Todos os códigos informados já estão ativos nesta negociação.')
-                return
-            }
+            const candidatos = data || []
+
+            let totalInseridos = 0
+            let totalIgnorados = 0
+            const errosDetalhados = []
 
             for (let i = 0; i < candidatos.length; i += 1) {
-                const ok = await inserirProcedimentoNaNegociacao(candidatos[i])
-                if (!ok) return
+                const candidato = candidatos[i]
+                if (existentes.has(normalizarTexto(candidato.codigo))) {
+                    totalIgnorados += 1
+                    continue
+                }
+                const resultado = await inserirProcedimentoNaNegociacao(candidato, {
+                    silencioso: true,
+                    semRecarregar: true,
+                })
+                if (resultado.status === 'ok') totalInseridos += 1
+                else if (resultado.status === 'ja_existia') totalIgnorados += 1
+                else errosDetalhados.push(`${candidato.codigo}: ${resultado.mensagem || 'erro desconhecido'}`)
             }
+
+            if (totalInseridos > 0 && negociacaoSelecionada) {
+                await carregarDetalheNegociacao(negociacaoSelecionada)
+            }
+
             setTextoMassaDetalhe('')
+
+            const partes = []
+            if (totalInseridos > 0) partes.push(`${totalInseridos} adicionado(s)`)
+            if (totalIgnorados > 0) partes.push(`${totalIgnorados} já existente(s) ignorado(s)`)
+            if (codigosNaoEncontrados.length > 0) partes.push(`${codigosNaoEncontrados.length} código(s) não encontrado(s): ${codigosNaoEncontrados.join(', ')}`)
+            if (errosDetalhados.length > 0) partes.push(`${errosDetalhados.length} falhou(aram): ${errosDetalhados.join(' | ')}`)
+            if (partes.length > 0) mostrarErroToast(`Adição em massa concluída — ${partes.join(' · ')}.`)
         } finally {
             setLoading(false)
         }

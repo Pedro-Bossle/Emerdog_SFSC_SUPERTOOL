@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { clearStoredAccessProfile } from './accessControl'
 
 const supabaseUrl =
   import.meta.env.VITE_SUPABASE_URL || import.meta.env.NEXT_PUBLIC_SUPABASE_URL
@@ -20,6 +21,11 @@ export const getReadOnlyFlag = () => {
   return window.localStorage.getItem(READ_ONLY_STORAGE_KEY) === '1'
 }
 
+export const clearAccessState = () => {
+  setReadOnlyFlag(false)
+  clearStoredAccessProfile()
+}
+
 const guardedFetch = async (input, init = {}) => {
   const url = typeof input === 'string' ? input : input?.url || ''
   const method = String(init?.method || 'GET').toUpperCase()
@@ -38,3 +44,34 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
     fetch: guardedFetch,
   },
 })
+
+// O Supabase aplica um teto de 1000 linhas por requisição (PostgREST default).
+// Quando temos tabelas como planos_cidade/procedimentos/repasses que excedem isso,
+// é necessário paginar via .range() para trazer todos os registros.
+const TAMANHO_PAGINA_SUPABASE = 1000
+
+export const buscarTodosPaginado = async (montarQuery) => {
+  const acumulado = []
+  let pagina = 0
+
+  while (true) {
+    const inicio = pagina * TAMANHO_PAGINA_SUPABASE
+    const fim = inicio + TAMANHO_PAGINA_SUPABASE - 1
+    const resp = await montarQuery().range(inicio, fim)
+
+    if (resp.error) {
+      return { data: acumulado, error: resp.error }
+    }
+
+    const lote = resp.data || []
+    acumulado.push(...lote)
+
+    if (lote.length < TAMANHO_PAGINA_SUPABASE) break
+    pagina += 1
+
+    // safety: limite máximo de 200 páginas (= 200k registros) para evitar loop infinito
+    if (pagina > 200) break
+  }
+
+  return { data: acumulado, error: null }
+}

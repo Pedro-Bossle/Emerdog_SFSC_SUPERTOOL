@@ -1,11 +1,18 @@
 import http from 'node:http'
-import handler from '../api/rc-pdf.js'
+import adminUsersHandler from '../api/admin-users.js'
+import rcPdfHandler from '../api/rc-pdf.js'
 
 const PORT = Number(process.env.API_PORT || 3000)
 
 const server = http.createServer(async (req, res) => {
     try {
-        if (req.url !== '/api/rc-pdf') {
+        const handlers = {
+            '/api/admin-users': adminUsersHandler,
+            '/api/rc-pdf': rcPdfHandler,
+        }
+        const handler = handlers[req.url]
+
+        if (!handler) {
             res.statusCode = 404
             res.setHeader('Content-Type', 'application/json; charset=utf-8')
             res.end(JSON.stringify({ error: 'Rota não encontrada.' }))
@@ -23,7 +30,7 @@ const server = http.createServer(async (req, res) => {
             }
         }
 
-        const reqLike = { method: req.method, body }
+        const reqLike = { method: req.method, headers: req.headers, body }
         const resLike = {
             statusCode: 200,
             headers: {},
@@ -58,6 +65,5 @@ const server = http.createServer(async (req, res) => {
 })
 
 server.listen(PORT, () => {
-    // eslint-disable-next-line no-console
     console.log(`API local pronta em http://localhost:${PORT}`)
 })
