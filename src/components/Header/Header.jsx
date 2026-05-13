@@ -43,11 +43,12 @@ const Header = () => {
                 <Link className='header_nav_link' to="/home">Início</Link>
                 <Link className='header_nav_link' to="/supertabelamain">Super-Tabela</Link>
                 <Link className='header_nav_link' to="/credenciamento/principal">Credenciamento</Link>
-                <a className='header_nav_link' href="#">Formulário</a>
+                <Link className='header_nav_link' to="/Compras/Orcamento">Orçamentos</Link>
+                {/*<a className='header_nav_link' href="#">Formulário</a>
                 <a className='header_nav_link' href="#">Planos</a>
                 <a className='header_nav_link' href="#">Contratos</a>
                 <a className='header_nav_link' href="#">Pagamentos</a>
-                <a className='header_nav_link' href="#">Emer-Cast</a>
+                <a className='header_nav_link' href="#">Emer-Cast</a>*/}
                 <button
                     type='button'
                     className='header_darkmode_button'

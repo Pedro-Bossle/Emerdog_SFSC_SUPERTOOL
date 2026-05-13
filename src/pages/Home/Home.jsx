@@ -55,6 +55,11 @@ const Home = () => {
         </div>
 
         <div className='home_card'>
+          <h2 className='card_nome'>Orçamentos</h2>
+          <p className='card_texto'>Calcule orçamento de compra de procedimentos para clientes de forma rápida e fácil;</p>
+          <a className='card_link' href="/Compras/Orcamento">Conheça essa Ferramenta</a>
+        </div>
+        {/*<div className='home_card'>
           <h2 className='card_nome'>Formulário</h2>
           <p className='card_texto'>Cadastre os perfis de veterinários de maneira rápida e fácil com apenas um link individual;</p>
           <a className='card_link' href="https://www.jotform.com/pt/inbox/240603265780656/6520912807731027667">Conheça essa Ferramenta</a>
@@ -83,6 +88,7 @@ const Home = () => {
           <p className='card_texto'>Fique por dentro do cronograma de episódios do Emer Cast;</p>
           <a className='card_link' href="https://docs.google.com/spreadsheets/d/1WqUUGcIDeM6NTdjzXoDqhDD1GWUshnaoZjiVQZH6l5M/edit?gid=956068756#gid=956068756">Conheça essa Ferramenta</a>
         </div>
+        */}
 
         <div className='home_card'>
           <h2 className='card_nome'>Em breve...</h2>
