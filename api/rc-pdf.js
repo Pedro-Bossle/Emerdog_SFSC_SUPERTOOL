@@ -1,5 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import chromium from '@sparticuz/chromium'
+import puppeteerCore from 'puppeteer-core'
 import { PDFDocument } from 'pdf-lib'
 import { createClient } from '@supabase/supabase-js'
 import { config as dotenvConfig } from 'dotenv'
@@ -17,11 +19,9 @@ const isServerless = !!(
 
 const launchBrowser = async () => {
     if (isServerless) {
-        const [{ default: chromium }, puppeteerCore] = await Promise.all([
-            import('@sparticuz/chromium'),
-            import('puppeteer-core'),
-        ])
-        return puppeteerCore.default.launch({
+        // Imports estáticos no topo do arquivo: o empacotamento da Vercel rastreia
+        // @sparticuz/chromium e puppeteer-core; import() dinâmico costuma omitir binários.
+        return puppeteerCore.launch({
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),

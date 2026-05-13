@@ -70,3 +70,53 @@
     transform: scale(1.03);
     border-color: var(--azul-destaque);
 }
+
+@media (max-width: 1023px) {
+    .header {
+        padding: 1rem 0.75rem;
+    }
+
+    .header_nav {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.65rem 1rem;
+        padding: 0.85rem 1rem;
+        max-width: 100%;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .header_nav_link,
+    .logout_button {
+        font-size: 0.88rem;
+    }
+
+    .logout_button {
+        padding: 0.45rem 1rem;
+        min-height: 40px;
+    }
+
+    .logo.logo_header {
+        max-height: 36px;
+        width: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .header_nav {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header_nav_link {
+        text-align: center;
+        padding: 0.35rem 0;
+    }
+
+    .logout_button,
+    .header_darkmode_button {
+        width: 100%;
+        max-width: 220px;
+        margin: 0 auto;
+    }
+}

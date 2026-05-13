@@ -1,36 +1,95 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Sidebar from '../Sidebar/Sidebar'
 import { Outlet } from 'react-router-dom'
 import './Layout2.css'
 
+const MQ_COMPACT = '(max-width: 1023px)'
+
 const Layout2 = () => {
-  const [openManual, setOpenManual] = useState(false) // botão
-  const [isHovering, setIsHovering] = useState(false) // mouse
+    const [openManual, setOpenManual] = useState(false)
+    const [isHovering, setIsHovering] = useState(false)
+    const [isCompact, setIsCompact] = useState(() =>
+        typeof window !== 'undefined' ? window.matchMedia(MQ_COMPACT).matches : false,
+    )
 
-  const open = openManual || isHovering
+    useEffect(() => {
+        if (typeof window === 'undefined') return undefined
+        const mq = window.matchMedia(MQ_COMPACT)
+        const onChange = () => setIsCompact(mq.matches)
+        mq.addEventListener('change', onChange)
+        return () => mq.removeEventListener('change', onChange)
+    }, [])
 
-  const handleToggleManual = () => {
-    setOpenManual((prev) => !prev)
-  }
+    useEffect(() => {
+        if (!isCompact || !openManual) return undefined
+        const onKey = (e) => {
+            if (e.key === 'Escape') setOpenManual(false)
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [isCompact, openManual])
 
-  return (
-    <div className="app-shell">
-      <div
-        onMouseEnter={() => setIsHovering(true)}
-        onMouseLeave={() => setIsHovering(false)}
-      >
-        <Sidebar
-          open={open}
-          onToggleManual={handleToggleManual}
-          isPinned={openManual}
-        />
-      </div>
+    /** Em ecrã compacto só o pin/manual abre a gaveta; em desktop mantém-se o hover. */
+    const navOpen = isCompact ? openManual : openManual || isHovering
 
-      <main className={`content ${open ? 'open' : 'closed'}`}>
-        <Outlet />
-      </main>
-    </div>
-  )
+    const handleToggleManual = () => {
+        setOpenManual((prev) => !prev)
+    }
+
+    const closeDrawer = () => {
+        if (isCompact) setOpenManual(false)
+    }
+
+    const hoverHandlers =
+        !isCompact
+            ? {
+                  onMouseEnter: () => setIsHovering(true),
+                  onMouseLeave: () => setIsHovering(false),
+              }
+            : {}
+
+    return (
+        <div
+            className={`app-shell${isCompact ? ' app-shell--compact' : ''}`}
+            data-nav-open={isCompact && openManual ? 'true' : 'false'}
+        >
+            {isCompact && openManual && (
+                <button
+                    type="button"
+                    className="layout2_nav_backdrop"
+                    aria-label="Fechar menu de navegação"
+                    onClick={() => setOpenManual(false)}
+                />
+            )}
+            {isCompact && !openManual && (
+                <button
+                    type="button"
+                    className="layout2_nav_fab"
+                    aria-label="Abrir menu de navegação"
+                    onClick={() => setOpenManual(true)}
+                >
+                    ☰
+                </button>
+            )}
+
+            <div {...hoverHandlers}>
+                <Sidebar
+                    open={navOpen}
+                    onToggleManual={handleToggleManual}
+                    isPinned={openManual}
+                    onAfterNavigate={closeDrawer}
+                />
+            </div>
+
+            <main
+                className={
+                    isCompact ? 'content content--compact' : `content ${navOpen ? 'open' : 'closed'}`
+                }
+            >
+                <Outlet />
+            </main>
+        </div>
+    )
 }
 
 export default Layout2

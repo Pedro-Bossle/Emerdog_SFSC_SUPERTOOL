@@ -1,0 +1,147 @@
+/**
+ * Responsividade global: tablet (≤1023px) e telemóvel (≤640px).
+ * Complementa Layout2 (gaveta) e páginas com margens/filtros/tabelas.
+ */
+
+/* -------------------------------------------------------------------------- */
+/* Tablet e telemóvel — margens e HR das páginas “operacionais” (Layout2)     */
+/* -------------------------------------------------------------------------- */
+@media (max-width: 1023px) {
+    .supertabelamain,
+    .supertabelacidades,
+    .supertabelaplanos,
+    .supertabelaprocedimentos,
+    .supertabelanegociacoes,
+    .credenciamento_main,
+    .compras_vv,
+    .compras_orc,
+    .gerenciamento_acessos {
+        margin-left: 0.5rem !important;
+        margin-right: 0.5rem !important;
+        margin-bottom: 1.25rem;
+        box-sizing: border-box;
+        max-width: 100%;
+    }
+
+    .supertabelamain hr,
+    .supertabelacidades hr,
+    .supertabelaplanos hr,
+    .supertabelaprocedimentos hr,
+    .supertabelanegociacoes hr,
+    .credenciamento_main hr,
+    .compras_vv hr,
+    .compras_orc hr {
+        margin-left: 0.75rem !important;
+        margin-right: 0.75rem !important;
+    }
+
+    /* Filtros: empilhar e ocupar largura útil */
+    .supertabelamain_filters,
+    .supertabelacidades_filters,
+    .supertabelaplanos_filters,
+    .supertabelaprocedimentos_filters,
+    .supertabelanegociacoes_filters,
+    .credenciamento_main_filters,
+    .compras_vv_filters,
+    .compras_orc_filtros_inner {
+        flex-wrap: wrap !important;
+        justify-content: stretch !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .supertabelamain_filters_input,
+    .supertabelamain_filters_select,
+    .supertabelacidades_filters .supertabelacidades_filter_item,
+    .supertabelaplanos_filters .supertabelaplanos_filter_item,
+    .supertabelaprocedimentos_filters .supertabelaprocedimentos_filter_item,
+    .supertabelanegociacoes_filters .supertabelanegociacoes_filter_item,
+    .credenciamento_main_filter_item,
+    .compras_vv_filter_item,
+    .compras_orc_filtro_item {
+        flex: 1 1 100% !important;
+        min-width: 0 !important;
+    }
+
+    .credenciamento_main_filters_row,
+    .credenciamento_main_filters_selectors .credenciamento_main_filters_row:first-child {
+        grid-template-columns: 1fr !important;
+        gap: 8px !important;
+    }
+
+    .credenciamento_main_filters_layout {
+        flex-direction: column !important;
+    }
+
+    .gerenciamento_acessos_grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    .compras_orc_filtros_flutuantes {
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box;
+    }
+
+    .compras_vv_header_body {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    .documentation {
+        margin: 0.5rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .documentation_iframe_wrapper {
+        min-height: 50vh !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+@media (max-width: 640px) {
+    .supertabelamain h1,
+    .supertabelacidades h1,
+    .supertabelaplanos h1,
+    .supertabelaprocedimentos h1,
+    .supertabelanegociacoes h1,
+    .credenciamento_main h1,
+    .compras_vv h1,
+    .compras_orc h1 {
+        font-size: 1.15rem;
+        line-height: 1.3;
+        padding: 0 0.25rem;
+    }
+
+    .table_main th,
+    .table_main td {
+        padding: 6px 5px;
+        font-size: 0.82rem;
+    }
+
+    .table_main th {
+        font-size: 0.76rem;
+    }
+}
+
+/* Tabelas largas: scroll horizontal estável */
+@media (max-width: 1023px) {
+    .table_main {
+        display: table;
+        min-width: 0;
+    }
+
+    .supertabelamain .table_main,
+    .supertabelacidades .table_main,
+    .supertabelaplanos .table_main,
+    .supertabelaprocedimentos .table_main,
+    .supertabelanegociacoes .table_main,
+    .credenciamento_main .table_main,
+    .compras_vv .table_main {
+        font-size: 0.86rem;
+    }
+}

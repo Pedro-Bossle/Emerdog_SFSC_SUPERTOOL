@@ -918,7 +918,10 @@ const Supertabelacidades = () => {
                     }))
                 )
 
-                const { error: errInsert } = await supabase.from('repasses').insert(payload)
+                const { error: errInsert } = await supabase.from('repasses').upsert(payload, {
+                    onConflict: 'procedimento_id,cidade_id,porte_id',
+                    ignoreDuplicates: true,
+                })
                 if (errInsert) {
                     mensagemErro = errInsert.message
                 } else {

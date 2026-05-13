@@ -1,0 +1,1174 @@
+.compras_orc {
+
+    text-align: center;
+
+    margin: 0 2.5em 2.5em 2.5em;
+
+    color: var(--cinza-escuro);
+
+}
+
+
+
+.compras_orc hr {
+
+    border-radius: 10px;
+
+    margin: 10px 8em;
+
+    border: 1px solid var(--azul-claro);
+
+}
+
+
+
+.compras_orc_header {
+
+    position: sticky;
+
+    top: 0;
+
+    z-index: 30;
+
+    background: transparent;
+
+    padding: 8px 0 12px 0;
+
+    transition: padding 0.2s ease, background-color 0.2s ease, backdrop-filter 0.2s ease;
+
+}
+
+
+
+.compras_orc_header.is-compact {
+
+    padding: 4px 0 8px 0;
+
+    background: rgba(255, 255, 255, 0.25);
+
+    backdrop-filter: blur(6px);
+
+    -webkit-backdrop-filter: blur(6px);
+
+}
+
+
+
+.compras_orc_hint {
+
+    font-size: 0.78rem;
+
+    color: #35556d;
+
+    margin: 0 auto 10px;
+
+    max-width: 960px;
+
+    line-height: 1.45;
+
+    text-align: center;
+
+}
+
+
+
+.compras_orc_hint code {
+
+    font-size: 0.76rem;
+
+}
+
+
+
+.compras_orc_header.is-compact .compras_orc_hint {
+
+    font-size: 0.72rem;
+
+    margin-bottom: 6px;
+
+}
+
+
+
+/* Barra de controles — mesmo espírito que Supertabela Cidades (filtros) */
+
+.compras_orc_filtros_flutuantes {
+
+    max-width: 1300px;
+
+    width: calc(100% - 1.5em);
+
+    margin: 0 auto;
+
+    box-sizing: border-box;
+
+    padding: 0.65em 0.9em;
+
+    background: #f8fbfd;
+
+    border: 1px solid #d7e8f2;
+
+    border-radius: 12px;
+
+    box-shadow: 0 2px 12px rgba(30, 49, 72, 0.08);
+
+}
+
+
+
+.compras_orc_header.is-compact .compras_orc_filtros_flutuantes {
+
+    padding: 0.5em 0.75em;
+
+    box-shadow: 0 2px 10px rgba(30, 49, 72, 0.1);
+
+}
+
+
+
+.compras_orc_filtros_inner {
+
+    display: flex;
+
+    flex-wrap: nowrap;
+
+    align-items: flex-end;
+
+    justify-content: center;
+
+    gap: 10px;
+
+    text-align: left;
+
+}
+
+
+
+.compras_orc_filtro_item {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 4px;
+
+    flex: 1 1 0;
+
+    min-width: 0;
+
+}
+
+
+
+.compras_orc_filtro_busca {
+
+    flex: 1.35 1 220px;
+
+}
+
+
+
+.compras_orc_filtro_label,
+
+.compras_orc_filtro_item > span:first-child {
+
+    margin: 0;
+
+    font-size: 0.82rem;
+
+    font-weight: 600;
+
+    color: var(--azul-escuro);
+
+}
+
+
+
+.compras_orc_busca_wrap {
+
+    position: relative;
+
+    width: 100%;
+
+    min-width: 0;
+
+}
+
+
+
+.compras_orc_input,
+
+.compras_orc_select {
+
+    height: 34px;
+
+    padding: 6px 10px;
+
+    border-radius: 7px;
+
+    border: 1px solid var(--azul-destaque);
+
+    background: #fff;
+
+    font-family: inherit;
+
+    font-size: 0.86rem;
+
+    width: 100%;
+
+    min-width: 0;
+
+    box-sizing: border-box;
+
+}
+
+
+
+.compras_orc_sugestoes {
+
+    list-style: none;
+
+    margin: 0;
+
+    padding: 0;
+
+    max-height: 220px;
+
+    overflow: auto;
+
+    border: 1px solid #d7e8f2;
+
+    border-radius: 8px;
+
+    background: #fff;
+
+}
+
+
+
+.compras_orc_sugestoes_docked {
+
+    position: absolute;
+
+    left: 0;
+
+    right: 0;
+
+    top: calc(100% + 4px);
+
+    z-index: 40;
+
+    box-shadow: 0 10px 28px rgba(30, 49, 72, 0.18);
+
+}
+
+
+
+.compras_orc_sugestoes li button {
+
+    width: 100%;
+
+    text-align: left;
+
+    padding: 8px 10px;
+
+    border: none;
+
+    border-bottom: 1px solid #eef4f8;
+
+    background: transparent;
+
+    cursor: pointer;
+
+    font-size: 0.84rem;
+
+}
+
+
+
+.compras_orc_sugestoes li button:hover {
+
+    background: #e8f5ff;
+
+}
+
+
+
+.compras_orc_main_card {
+
+    margin-top: 18px;
+
+    text-align: left;
+
+    border: 1px solid #d9e7ef;
+
+    border-radius: 12px;
+
+    background: #ffffff;
+
+    box-shadow: 0 2px 10px rgba(30, 49, 72, 0.06);
+
+    padding: 14px 16px 16px;
+
+    width: 100%;
+
+    box-sizing: border-box;
+
+}
+
+
+
+.compras_orc_main_head {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    flex-wrap: wrap;
+
+    margin-bottom: 10px;
+
+}
+
+
+
+.compras_orc_main_titulo {
+
+    margin: 0;
+
+    font-size: 1.35rem;
+
+    color: var(--azul-escuro);
+
+    font-weight: 700;
+
+}
+
+
+
+.compras_orc_main_head_actions {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    flex-wrap: wrap;
+
+}
+
+
+
+.compras_orc_calc_badge {
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
+
+    color: #0a5d96;
+
+}
+
+
+
+.compras_orc_ctx_msg {
+
+    margin: 0 0 10px 0;
+
+    font-size: 0.84rem;
+
+    color: #5a7288;
+
+    line-height: 1.45;
+
+}
+
+
+
+.compras_orc_remove_hint {
+
+    margin: 0 0 12px 0;
+
+    font-size: 0.82rem;
+
+    color: #4a6578;
+
+    line-height: 1.45;
+
+    text-align: center;
+
+}
+
+
+
+.compras_orc_empty {
+
+    margin: 8px 0 0 0;
+
+    font-size: 0.9rem;
+
+    color: #5a7288;
+
+}
+
+
+
+.compras_orc_table_wrap {
+
+    overflow-x: auto;
+
+}
+
+
+
+.compras_orc_table_orc {
+
+    width: 100%;
+
+    min-width: 920px;
+
+    table-layout: fixed;
+
+}
+
+
+
+.compras_orc_table_orc col.compras_orc_col_proc {
+
+    width: 38%;
+
+}
+
+
+
+.compras_orc_table_orc col.compras_orc_col_num {
+
+    width: 8%;
+
+}
+
+
+
+.compras_orc_table_orc col.compras_orc_col_plano {
+
+    width: 14%;
+
+}
+
+
+
+.compras_orc_table_orc col.compras_orc_col_qty {
+
+    width: 11%;
+
+}
+
+
+
+.compras_orc_table_orc thead tr th:first-child {
+
+    text-align: left;
+
+}
+
+
+
+.compras_orc_td_cod {
+
+    white-space: nowrap;
+
+    vertical-align: middle;
+
+}
+
+
+
+.compras_orc_td_proc_full {
+
+    vertical-align: middle;
+
+    min-width: 0;
+
+    width: 38%;
+
+}
+
+
+
+.compras_orc_td_proc_full .compras_orc_proc_nome {
+
+    display: block;
+
+    font-size: 1.02rem;
+
+    line-height: 1.38;
+
+    font-weight: 600;
+
+    color: #1e3148;
+
+    overflow-wrap: anywhere;
+
+    word-break: break-word;
+
+}
+
+
+
+.compras_orc_tfoot_num {
+
+    font-size: 1.02rem;
+
+}
+
+
+
+.compras_orc_td_proc {
+
+    vertical-align: middle;
+
+    min-width: 160px;
+
+}
+
+
+
+.compras_orc_proc_nome {
+
+    display: block;
+
+    margin-bottom: 0;
+
+    font-size: 0.88rem;
+
+}
+
+
+
+.compras_orc_qty_row {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 4px;
+
+}
+
+
+
+.compras_orc_qty_btn {
+
+    height: 28px !important;
+
+    min-width: 28px;
+
+    padding: 0 6px !important;
+
+    font-size: 0.95rem !important;
+
+}
+
+
+
+.compras_orc_qty_input {
+
+    width: 52px;
+
+    min-width: 44px;
+
+    height: 28px;
+
+    padding: 2px 6px;
+
+    box-sizing: border-box;
+
+    border: 1px solid var(--azul-destaque);
+
+    border-radius: 6px;
+
+    text-align: center;
+
+    font-weight: 700;
+
+    font-size: 0.86rem;
+
+    font-variant-numeric: tabular-nums;
+
+    font-family: inherit;
+
+    background: #fff;
+
+    color: #1e3148;
+
+}
+
+
+
+.compras_orc_qty_input:focus {
+
+    outline: 2px solid rgba(10, 93, 150, 0.35);
+
+    outline-offset: 1px;
+
+}
+
+
+
+.compras_orc_qty_val {
+
+    min-width: 1.25em;
+
+    text-align: center;
+
+    font-weight: 700;
+
+    font-size: 0.86rem;
+
+}
+
+
+
+.compras_orc_td_num {
+
+    text-align: right;
+
+    white-space: nowrap;
+
+    vertical-align: middle;
+
+    font-variant-numeric: tabular-nums;
+
+}
+
+
+
+.compras_orc_table_orc .compras_orc_td_num {
+
+    font-size: 0.88rem;
+
+}
+
+
+
+.compras_orc_td_plano {
+
+    font-size: 0.84rem;
+
+    vertical-align: middle;
+
+    max-width: none;
+
+}
+
+
+
+.compras_orc_td_qty {
+
+    text-align: center;
+
+    vertical-align: middle;
+
+    white-space: nowrap;
+
+}
+
+
+
+.compras_orc_tfoot_row td {
+
+    border-top: 2px solid #d7e8f2;
+
+    padding-top: 12px;
+
+    padding-bottom: 8px;
+
+    vertical-align: middle;
+
+}
+
+
+
+.compras_orc_subtotal_cell {
+
+    text-align: left;
+
+    font-size: 0.92rem;
+
+    color: #2a4a63;
+
+}
+
+.compras_orc_col_mid {
+
+    text-align: center;
+
+    vertical-align: middle;
+
+}
+
+
+
+.compras_orc_table_orc thead th.compras_orc_col_mid {
+
+    text-align: center;
+
+}
+
+
+
+.compras_orc_td_num.compras_orc_col_mid {
+
+    text-align: center;
+
+}
+
+
+
+.compras_orc_td_plano.compras_orc_col_mid {
+
+    text-align: center;
+
+}
+
+
+
+.compras_orc_subtotal_inner_centered {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: center;
+
+    justify-content: center;
+
+    text-align: center;
+
+    gap: 4px;
+
+}
+
+
+
+.compras_orc_subtotal_cell.compras_orc_col_mid {
+
+    text-align: center;
+
+    vertical-align: middle;
+
+}
+
+.compras_orc_subtotal_hint {
+
+    display: block;
+
+    font-size: 0.72rem;
+
+    font-weight: 500;
+
+    color: #7390a5;
+
+    margin-top: 4px;
+
+}
+
+.compras_orc_subtotal_amount {
+
+    font-size: 1.08rem;
+
+    font-variant-numeric: tabular-nums;
+
+    white-space: nowrap;
+
+}
+
+
+
+.compras_orc_btn {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    height: 34px;
+
+    padding: 0 12px;
+
+    border-radius: 7px;
+
+    border: 1px solid var(--azul-destaque);
+
+    background: #e8f5ff;
+
+    color: #0a5d96;
+
+    font-weight: 700;
+
+    font-size: 0.82rem;
+
+    cursor: pointer;
+
+    font-family: inherit;
+
+}
+
+
+
+.compras_orc_btn.secondary {
+
+    background: #fff;
+
+    color: #35556d;
+
+}
+
+
+
+.compras_orc_btn:disabled {
+
+    opacity: 0.55;
+
+    cursor: not-allowed;
+
+}
+
+
+
+.compras_orc_alert {
+
+    position: fixed;
+
+    top: 18px;
+
+    right: 18px;
+
+    z-index: 1300;
+
+    max-width: 420px;
+
+    min-width: 280px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 12px 14px;
+
+    border-radius: 8px;
+
+    border: 1px solid #2f87c6;
+
+    background: linear-gradient(180deg, #f1f8fc 0%, #e3f2fb 100%);
+
+    box-shadow: 0 8px 22px rgba(30, 49, 72, 0.18);
+
+}
+
+
+
+.compras_orc_alert button {
+
+    border: 1px solid #8ab9d8;
+
+    background: #fff;
+
+    color: #1e3148;
+
+    border-radius: 6px;
+
+    width: 24px;
+
+    height: 24px;
+
+    cursor: pointer;
+
+    font-weight: 700;
+
+}
+
+
+
+body.dark-mode .compras_orc_filtros_flutuantes,
+
+body.dark-mode .compras_orc_main_card {
+
+    background: var(--bg-surface, #132335);
+
+    border-color: var(--border-soft, #355372);
+
+    color: #dce7f2;
+
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
+
+}
+
+
+
+body.dark-mode .compras_orc_hint,
+
+body.dark-mode .compras_orc_ctx_msg,
+
+body.dark-mode .compras_orc_remove_hint,
+
+body.dark-mode .compras_orc_empty {
+
+    color: #b8cfe0;
+
+}
+
+
+
+body.dark-mode .compras_orc_filtro_label,
+
+body.dark-mode .compras_orc_main_titulo {
+
+    color: var(--azul-claro, #e7f4fc);
+
+}
+
+
+
+body.dark-mode .compras_orc_input,
+
+body.dark-mode .compras_orc_select,
+
+body.dark-mode .compras_orc_sugestoes {
+
+    background: #0f1e2e;
+
+    color: #dce7f2;
+
+    border-color: #355372;
+
+}
+
+
+
+body.dark-mode .compras_orc_sugestoes li button {
+
+    color: #dce7f2;
+
+    border-bottom-color: #355372;
+
+}
+
+
+
+body.dark-mode .compras_orc_sugestoes li button:hover {
+
+    background: #1a334d;
+
+}
+
+
+
+body.dark-mode .compras_orc_calc_badge {
+
+    color: #9fd4ff;
+
+}
+
+
+
+body.dark-mode .compras_orc_subtotal_cell {
+
+    color: #dce7f2;
+
+}
+
+
+
+body.dark-mode .compras_orc_subtotal_amount {
+
+    color: #dce7f2;
+
+}
+
+
+
+body.dark-mode .compras_orc_subtotal_hint {
+
+    color: #8aa4bd;
+
+}
+
+
+
+body.dark-mode .compras_orc_tfoot_row td {
+
+    border-top-color: #355372;
+
+}
+
+
+
+body.dark-mode .compras_orc_td_proc_full .compras_orc_proc_nome {
+
+    color: #dce7f2;
+
+}
+
+
+
+body.dark-mode .compras_orc_btn.secondary {
+
+    background: #1a3a56;
+
+    color: #dce7f2;
+
+    border-color: #4d7aa0;
+
+}
+
+
+
+body.dark-mode .compras_orc_qty_input {
+
+    background: #0f1e2e;
+
+    color: #dce7f2;
+
+    border-color: #355372;
+
+}
+
+
+
+/* Tabela do orçamento: fundo claro vinda de .table_main e linha de totais (tfoot) */
+body.dark-mode .compras_orc_table_orc.table_main {
+
+    background: var(--bg-surface, #132335);
+
+    border-color: var(--border-soft, #355372);
+
+}
+
+
+
+body.dark-mode .compras_orc_table_orc tbody tr:nth-child(odd) {
+
+    background: #16293f;
+
+}
+
+
+
+body.dark-mode .compras_orc_table_orc tbody tr:nth-child(even) {
+
+    background: var(--bg-surface, #132335);
+
+}
+
+
+
+body.dark-mode .compras_orc_table_orc tbody tr:hover {
+
+    background: #17314a;
+
+}
+
+
+
+body.dark-mode .compras_orc_tfoot_row td {
+
+    background: #1a3248 !important;
+
+    color: #dce7f2 !important;
+
+    border-top-color: #3f5f7c !important;
+
+}
+
+
+
+body.dark-mode .compras_orc_tfoot_num strong,
+
+body.dark-mode .compras_orc_subtotal_cell strong {
+
+    color: #eaf6ff;
+
+}
+
+
+
+body.dark-mode .compras_orc_alert button {
+
+    background: #213b54;
+
+    color: #e9f3fc;
+
+    border-color: #4a6987;
+
+}
+
+
+
+body.dark-mode .compras_orc hr {
+
+    border-color: var(--border-soft, #355372);
+
+}
+
+
+
+@media (max-width: 960px) {
+
+    .compras_orc_filtros_inner {
+
+        flex-wrap: wrap;
+
+    }
+
+
+
+    .compras_orc_filtro_busca {
+
+        flex: 1 1 100%;
+
+    }
+
+}
+
+
+
+@media (max-width: 720px) {
+
+    .compras_orc {
+
+        margin: 0 0.75em 1.5em;
+
+    }
+
+
+
+    .compras_orc hr {
+
+        margin: 10px 1em;
+
+    }
+
+
+
+    .compras_orc_filtros_flutuantes {
+
+        width: 100%;
+
+    }
+
+}
+
+

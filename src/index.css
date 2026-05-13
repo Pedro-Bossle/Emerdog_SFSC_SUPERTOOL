@@ -154,6 +154,7 @@ body.dark-mode .categoria_secao,
 body.dark-mode .manager_modal,
 body.dark-mode .supertabelacidades_new_form,
 body.dark-mode .supertabelacidades_filters,
+body.dark-mode .compras_vv_filters,
 body.dark-mode .table_main tbody tr:nth-child(even),
 body.dark-mode .row_add_line,
 body.dark-mode .row_add_line td {
@@ -188,6 +189,7 @@ body.dark-mode .manager_table th,
 body.dark-mode .manager_table td,
 body.dark-mode .categoria_secao,
 body.dark-mode .supertabelacidades_filters,
+body.dark-mode .compras_vv_filters,
 body.dark-mode .manager_modal {
     border-color: var(--border-soft);
 }
@@ -480,8 +482,12 @@ body.dark-mode .supertabelacidades_header.is-compact,
 body.dark-mode .supertabelaplanos_header.is-compact,
 body.dark-mode .supertabelaprocedimentos_header.is-compact,
 body.dark-mode .supertabelanegociacoes_header.is-compact,
+body.dark-mode .compras_vv_header.is-compact,
+body.dark-mode .compras_orc_header.is-compact,
 body.dark-mode .credenciamento_main_header.is-compact {
     background: rgba(14, 27, 42, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 
 body.dark-mode .credenciamento_main_paginacao {
@@ -682,4 +688,16 @@ body.dark-mode footer {
 body.dark-mode footer a,
 body.dark-mode .copyright {
     color: #dbe7f3;
+}
+
+/* Base: evitar zoom de texto indesejado em iOS */
+html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
+@media (max-width: 1023px) {
+    body {
+        overflow-x: hidden;
+    }
 }

@@ -69,6 +69,33 @@
 }
 
 
+@media (max-width: 1023px) {
+    .login_container {
+        margin: 2rem 1rem;
+        padding: 1.5rem 1.25rem;
+        max-width: 420px;
+        width: calc(100% - 2rem);
+        box-sizing: border-box;
+    }
+
+    .login_input,
+    .password_container {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .login_button {
+        width: 100%;
+        max-width: 280px;
+        min-height: 44px;
+    }
+
+    .login_form {
+        margin: 1rem 0;
+    }
+}
+
+
 /*login
     login_container
         login_title

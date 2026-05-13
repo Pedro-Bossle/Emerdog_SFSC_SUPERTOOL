@@ -15,7 +15,7 @@
     text-align: center;
 }
 
-hr {
+.nf_card_header hr {
     margin: 15px 10em;
     left: 50%;
     display: flex;
@@ -60,6 +60,30 @@ hr {
 .nf_card_link:hover {
     transform: scale(1.03);
     font-weight: 400;
+}
+
+@media (max-width: 1023px) {
+    .not-found {
+        padding: 1rem;
+        box-sizing: border-box;
+    }
+
+    .nf_card_header {
+        padding: 1rem 1.25rem;
+        max-width: 100%;
+    }
+
+    .nf_cards_container {
+        grid-template-columns: 1fr;
+    }
+
+    .nf_card_link {
+        margin: 0.75rem 1rem;
+    }
+
+    .nf_card_header hr {
+        margin: 12px 1rem !important;
+    }
 }
 
 /*

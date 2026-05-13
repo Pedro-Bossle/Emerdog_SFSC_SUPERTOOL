@@ -313,7 +313,10 @@ const Supertabelaplanos = () => {
             if (!somenteLeitura && payloadComplemento.length > 0) {
                 const { data: inseridos, error: errComplemento } = await supabase
                     .from('planos_cidade')
-                    .insert(payloadComplemento)
+                    .upsert(payloadComplemento, {
+                        onConflict: 'regiao_id,plano_id,procedimento_cod',
+                        ignoreDuplicates: true,
+                    })
                     .select('id, plano_id, procedimento_cod, diferenca')
                 if (errComplemento) {
                     setErroDetalhe(`Erro ao completar planos do procedimento: ${errComplemento.message}`)
@@ -488,7 +491,10 @@ const Supertabelaplanos = () => {
             return { status: 'ja_existia' }
         }
 
-        const { error } = await supabase.from('planos_cidade').insert(novos)
+        const { error } = await supabase.from('planos_cidade').upsert(novos, {
+            onConflict: 'regiao_id,plano_id,procedimento_cod',
+            ignoreDuplicates: true,
+        })
 
         if (error) {
             const msg = String(error.message || '')
@@ -516,12 +522,18 @@ const Supertabelaplanos = () => {
             return { status: 'erro', mensagem: 'Plano não selecionado.' }
         }
 
-        const { error } = await supabase.from('planos_config').insert({
-            plano_id: Number(planoDetalheId),
-            procedimento: codigoNormalizado,
-            limite: '',
-            carencia: '',
-        })
+        const { error } = await supabase.from('planos_config').upsert(
+            {
+                plano_id: Number(planoDetalheId),
+                procedimento: codigoNormalizado,
+                limite: '',
+                carencia: '',
+            },
+            {
+                onConflict: 'plano_id,procedimento',
+                ignoreDuplicates: true,
+            }
+        )
 
         if (error) {
             const msg = String(error.message || '')

@@ -63,6 +63,15 @@ const menuItems = [
         ],
     },
     {
+        id: 'compras',
+        label: 'Compras',
+        permission: PERMISSION_KEYS.COMPRAS_VIEW,
+        children: [
+            { label: 'Valor de Venda', href: '/compras/valor-venda', permission: PERMISSION_KEYS.COMPRAS_VIEW },
+            { label: 'Orçamento', href: '/compras/orcamento', permission: PERMISSION_KEYS.COMPRAS_VIEW },
+        ],
+    },
+    {
         id: 'formulario',
         label: 'Formulário',
         children: [
@@ -125,7 +134,7 @@ const menuItems = [
     },
 ]
 
-const Sidebar = ({ open, onToggleManual, isPinned }) => {
+const Sidebar = ({ open, onToggleManual, isPinned, onAfterNavigate }) => {
     const navigate = useNavigate()
     const [accessProfile, setAccessProfile] = useState(() => getStoredAccessProfile())
     const [darkModeAtivo, setDarkModeAtivo] = useState(() => {
@@ -297,7 +306,11 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
                                             {child.label}
                                         </button>
                                     ) : (
-                                        <Link key={child.href} to={child.href}>
+                                        <Link
+                                            key={child.href}
+                                            to={child.href}
+                                            onClick={() => onAfterNavigate?.()}
+                                        >
                                             {child.label}
                                         </Link>
                                     )
@@ -312,7 +325,10 @@ const Sidebar = ({ open, onToggleManual, isPinned }) => {
                         <button
                             type='button'
                             className='sidebar_admin_btn'
-                            onClick={() => navigate('/administrativo/acessos')}
+                            onClick={() => {
+                                navigate('/administrativo/acessos')
+                                onAfterNavigate?.()
+                            }}
                             title='Gerenciamento de Acessos'
                         >
                             <span className='sidebar_admin_icon' aria-hidden>🛡️</span>

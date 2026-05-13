@@ -474,7 +474,10 @@ const Supertabelaprocedimentos = () => {
         })
 
         if (payloadInsercao.length > 0) {
-            const { error: errInserir } = await supabase.from('planos_cidade').insert(payloadInsercao)
+            const { error: errInserir } = await supabase.from('planos_cidade').upsert(payloadInsercao, {
+                onConflict: 'regiao_id,plano_id,procedimento_cod',
+                ignoreDuplicates: true,
+            })
             if (errInserir) {
                 if (planoBaseAnteriorId) {
                     await supabase.from('procedimentos').update({ plano_base_id: planoBaseAnteriorId }).eq('codigo', linha.codigo)

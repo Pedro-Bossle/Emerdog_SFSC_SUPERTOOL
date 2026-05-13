@@ -978,7 +978,10 @@ const Supertabelanegociacoes = () => {
             nome_alternativo: null,
         }))
 
-        const { error } = await supabase.from('negociacoes_vet').insert(payload)
+        const { error } = await supabase.from('negociacoes_vet').upsert(payload, {
+            onConflict: 'veterinario_id,procedimento_id,porte_id',
+            ignoreDuplicates: true,
+        })
         if (error) {
             const msg = String(error.message || '')
             if (msg.toLowerCase().includes('duplicate') || msg.includes('23505')) {

@@ -230,3 +230,14 @@
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 640px) {
+    .gerenciamento_acessos {
+        padding: 12px;
+    }
+
+    .gerenciamento_acessos_header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

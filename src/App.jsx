@@ -13,6 +13,8 @@ import Supertabelanegociacoes from './pages/Supertabela/Supertabela_negociacoes/
 import Credenciamento_doc from './pages/Credenciamento/Credenciamento_doc/Credenciamento_doc';
 import Credenciamento_main from './pages/Credenciamento/Credenciamento_main/Credenciamento_main';
 import GerenciamentoAcessos from './pages/Administrativo/GerenciamentoAcessos/GerenciamentoAcessos';
+import ComprasValorVenda from './pages/Compras/ValorVenda/ComprasValorVenda';
+import ComprasOrcamento from './pages/Compras/Orcamento/ComprasOrcamento';
 import NotFound from './pages/NotFound/NotFound';
 function App() {
   return (
@@ -117,6 +119,26 @@ function App() {
             element={
               <PrivateRoute permission="credenciamento.view">
                 <Credenciamento_doc />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/compras/valor-venda"
+            element={
+              <PrivateRoute permission="compras.view">
+                <ComprasValorVenda />
+              </PrivateRoute>
+            }
+          />
+        </Route>
+        <Route element={<Layout2 />}>
+          <Route
+            path="/compras/orcamento"
+            element={
+              <PrivateRoute permission="compras.view">
+                <ComprasOrcamento />
               </PrivateRoute>
             }
           />

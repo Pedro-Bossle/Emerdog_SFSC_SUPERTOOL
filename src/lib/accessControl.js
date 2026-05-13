@@ -7,6 +7,8 @@ export const PERMISSION_KEYS = {
   SUPERTABELA_DELETE_BY_LIST: 'supertabela.tools.deleteByList',
   CREDENCIAMENTO_VIEW: 'credenciamento.view',
   CREDENCIAMENTO_EDIT: 'credenciamento.edit',
+  COMPRAS_VIEW: 'compras.view',
+  COMPRAS_EDIT: 'compras.edit',
 }
 
 export const PERMISSOES = [
@@ -55,6 +57,21 @@ export const PERMISSOES = [
       },
     ],
   },
+  {
+    grupo: 'Compras',
+    itens: [
+      {
+        chave: PERMISSION_KEYS.COMPRAS_VIEW,
+        rotulo: 'Ver Compras',
+        descricao: 'Pode acessar Valor de Venda e Orçamento.',
+      },
+      {
+        chave: PERMISSION_KEYS.COMPRAS_EDIT,
+        rotulo: 'Editar Compras',
+        descricao: 'Pode criar, editar e excluir registros em Valor de Venda.',
+      },
+    ],
+  },
 ]
 
 export const DEFAULT_PROFILE_PERMISSIONS = {
@@ -63,6 +80,8 @@ export const DEFAULT_PROFILE_PERMISSIONS = {
   [PERMISSION_KEYS.SUPERTABELA_DELETE_BY_LIST]: false,
   [PERMISSION_KEYS.CREDENCIAMENTO_VIEW]: true,
   [PERMISSION_KEYS.CREDENCIAMENTO_EDIT]: true,
+  [PERMISSION_KEYS.COMPRAS_VIEW]: true,
+  [PERMISSION_KEYS.COMPRAS_EDIT]: true,
   [PERMISSION_KEYS.ACCESS_MANAGE]: false,
 }
 
@@ -72,6 +91,8 @@ export const DEFAULT_INVITED_PERMISSIONS = {
   [PERMISSION_KEYS.SUPERTABELA_DELETE_BY_LIST]: false,
   [PERMISSION_KEYS.CREDENCIAMENTO_VIEW]: true,
   [PERMISSION_KEYS.CREDENCIAMENTO_EDIT]: false,
+  [PERMISSION_KEYS.COMPRAS_VIEW]: true,
+  [PERMISSION_KEYS.COMPRAS_EDIT]: false,
   [PERMISSION_KEYS.ACCESS_MANAGE]: false,
 }
 
@@ -113,6 +134,7 @@ export const usuarioSomenteLeituraGlobal = (profileOrPermissions) =>
   !hasAnyPermission(profileOrPermissions, [
     PERMISSION_KEYS.SUPERTABELA_EDIT,
     PERMISSION_KEYS.CREDENCIAMENTO_EDIT,
+    PERMISSION_KEYS.COMPRAS_EDIT,
     PERMISSION_KEYS.ACCESS_MANAGE,
   ])
 

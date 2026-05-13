@@ -1,5 +1,6 @@
 -- WARNING: This schema is for context only and is not meant to be run.
 -- Table order and constraints may not be valid for execution.
+-- Para UNIQUE parcial / dedupe em bases reais: sql/supertabela_dedup_unique_indexes.sql e sql/planos_cidade_dedup_and_unique.sql
 
 CREATE TABLE public.categorias (
   id integer NOT NULL DEFAULT nextval('categorias_id_seq'::regclass),
@@ -16,14 +17,13 @@ CREATE TABLE public.cidades (
 CREATE TABLE public.cidades_credenciamento (
   id integer NOT NULL DEFAULT nextval('cidades_credenciamento_id_seq'::regclass),
   nome character varying NOT NULL,
-  estado character NOT NULL,
+  uf text,
   CONSTRAINT cidades_credenciamento_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.especialidades (
   id integer NOT NULL DEFAULT nextval('especialidades_id_seq'::regclass),
   nome character varying NOT NULL UNIQUE,
   tipo character varying,
-  ativo boolean DEFAULT true,
   CONSTRAINT especialidades_pkey PRIMARY KEY (id)
 );
 CREATE TABLE public.negociacoes_vet (
@@ -54,6 +54,8 @@ CREATE TABLE public.planos_cidade (
   CONSTRAINT fk_regiao FOREIGN KEY (regiao_id) REFERENCES public.regioes(id),
   CONSTRAINT planos_cidade_procedimento_cod_fkey FOREIGN KEY (procedimento_cod) REFERENCES public.procedimentos(codigo)
 );
+-- Em bases novas, aplicar também (após dados limpos):
+-- CREATE UNIQUE INDEX planos_cidade_regiao_plano_proc_uidx ON public.planos_cidade (regiao_id, plano_id, procedimento_cod);
 CREATE TABLE public.planos_config (
   id integer NOT NULL DEFAULT nextval('planos_config_id_seq'::regclass),
   plano_id integer,
@@ -103,7 +105,7 @@ CREATE TABLE public.prestadores (
   telefone character varying,
   cidade_id integer,
   endereco text,
-  modalidade character varying,
+  modalidade text,
   especialidade_id integer,
   situacao_id integer,
   no_sistema boolean DEFAULT false,
@@ -115,9 +117,9 @@ CREATE TABLE public.prestadores (
   observacoes text,
   ativo boolean DEFAULT true,
   CONSTRAINT prestadores_pkey PRIMARY KEY (id),
-  CONSTRAINT prestadores_cidade_id_fkey FOREIGN KEY (cidade_id) REFERENCES public.cidades_credenciamento(id),
   CONSTRAINT prestadores_especialidade_id_fkey FOREIGN KEY (especialidade_id) REFERENCES public.especialidades(id),
-  CONSTRAINT prestadores_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacoes(id)
+  CONSTRAINT prestadores_situacao_id_fkey FOREIGN KEY (situacao_id) REFERENCES public.situacoes(id),
+  CONSTRAINT prestadores_cidade_id_fkey FOREIGN KEY (cidade_id) REFERENCES public.cidades_credenciamento(id)
 );
 CREATE TABLE public.procedimentos (
   id integer NOT NULL DEFAULT nextval('procedimentos_id_seq'::regclass),
@@ -128,6 +130,16 @@ CREATE TABLE public.procedimentos (
   CONSTRAINT procedimentos_pkey PRIMARY KEY (id),
   CONSTRAINT procedimentos_categoria_id_fkey FOREIGN KEY (categoria_id) REFERENCES public.categorias(id),
   CONSTRAINT procedimentos_plano_base_fk FOREIGN KEY (plano_base_id) REFERENCES public.planos(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  name character varying,
+  credenciamento_read_only boolean NOT NULL DEFAULT false,
+  email text,
+  permissions jsonb NOT NULL DEFAULT '{}'::jsonb,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.regioes (
   id integer NOT NULL DEFAULT nextval('regioes_id_seq'::regclass),
@@ -146,6 +158,13 @@ CREATE TABLE public.repasses (
   CONSTRAINT repasses_porte_id_fkey FOREIGN KEY (porte_id) REFERENCES public.portes(id),
   CONSTRAINT repasses_procedimento_id_fkey FOREIGN KEY (procedimento_id) REFERENCES public.procedimentos(codigo),
   CONSTRAINT repasses_regiao_id_fkey FOREIGN KEY (regiao_id) REFERENCES public.regioes(id)
+);
+CREATE TABLE public.servico_valor_venda (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  cod_procedimento text,
+  valor_venda real,
+  CONSTRAINT servico_valor_venda_pkey PRIMARY KEY (id),
+  CONSTRAINT servico_valor_venda_cod_procedimento_fkey FOREIGN KEY (cod_procedimento) REFERENCES public.procedimentos(codigo)
 );
 CREATE TABLE public.situacoes (
   id integer NOT NULL DEFAULT nextval('situacoes_id_seq'::regclass),

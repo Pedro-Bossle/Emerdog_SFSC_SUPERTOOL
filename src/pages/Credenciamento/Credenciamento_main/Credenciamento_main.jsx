@@ -793,7 +793,12 @@ const Credenciamento_main = () => {
                 if (!cidadeObj) continue
                 cidadesPayload.push({ prestador_id: prestadorId, cidade_id: Number(cidadeObj.id), principal: false })
             }
-            if (cidadesPayload.length) await supabase.from('prestador_cidades').insert(cidadesPayload)
+            if (cidadesPayload.length) {
+                await supabase.from('prestador_cidades').upsert(cidadesPayload, {
+                    onConflict: 'prestador_id,cidade_id',
+                    ignoreDuplicates: true,
+                })
+            }
 
             const payloadEspecialidades = [{
                 prestador_id: prestadorId,

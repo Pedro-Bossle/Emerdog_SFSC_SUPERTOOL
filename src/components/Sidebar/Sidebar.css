@@ -286,3 +286,50 @@
 .sidebar.closed .sidebar_admin_text {
     display: none;
 }
+
+/* ========== Tablet / telemóvel: gaveta sobre o conteúdo (Layout2) ========== */
+@media (max-width: 1023px) {
+    .app-shell--compact .layout .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        height: 100dvh;
+        width: min(288px, 88vw) !important;
+        max-width: min(288px, 88vw);
+        z-index: 420;
+        padding-top: max(10px, env(safe-area-inset-top));
+        padding-bottom: env(safe-area-inset-bottom);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.22);
+        transition: transform 0.28s ease, width 0.28s ease;
+    }
+
+    .app-shell--compact .sidebar.open,
+    .app-shell--compact .sidebar.closed {
+        width: min(288px, 88vw) !important;
+    }
+
+    .app-shell--compact:not([data-nav-open="true"]) .layout .sidebar {
+        transform: translateX(-105%);
+        pointer-events: none;
+    }
+
+    .app-shell--compact[data-nav-open="true"] .layout .sidebar {
+        transform: translateX(0);
+        pointer-events: auto;
+    }
+
+    .app-shell--compact .sidebar_submenu.open {
+        max-height: min(70vh, 520px);
+    }
+
+    .sidebar_group_btn {
+        padding-top: 12px;
+        padding-bottom: 12px;
+    }
+
+    .sidebar_submenu a,
+    .sidebar_submenu_action {
+        padding: 10px 0;
+    }
+}
