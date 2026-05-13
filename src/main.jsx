@@ -10,6 +10,7 @@ import './pages/Credenciamento/Credenciamento_main/Credenciamento_main.css'
 import './pages/Credenciamento/Credenciamento_doc/Credenciamento_doc.css'
 import './pages/Administrativo/GerenciamentoAcessos/GerenciamentoAcessos.css'
 import './pages/Compras/ValorVenda/ComprasValorVenda.css'
+import './pages/Compras/Orcamento/ComprasOrcamento.css'
 import App from './App.jsx'
 
 createRoot(document.getElementById('root')).render(
