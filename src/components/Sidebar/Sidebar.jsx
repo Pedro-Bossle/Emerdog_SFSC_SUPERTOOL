@@ -71,7 +71,7 @@ const menuItems = [
             { label: 'Orçamento', href: '/compras/orcamento', permission: PERMISSION_KEYS.COMPRAS_VIEW },
         ],
     },
-    {
+    /*{
         id: 'formulario',
         label: 'Formulário',
         children: [
@@ -131,7 +131,7 @@ const menuItems = [
             { label: 'Redefinir senha', action: 'reset-password' },
             { label: 'Encerrar sessão', href: '/logout' },
         ],
-    },
+    },*/
 ]
 
 const Sidebar = ({ open, onToggleManual, isPinned, onAfterNavigate }) => {
